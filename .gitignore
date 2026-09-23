@@ -1,0 +1,19 @@
+
+# Credentials and secrets
+# Local config (never commit)
+*.egg-info/
+*.key
+*.pem
+*.pyc
+.dream-insights/
+.env
+.env.*
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.secrets.baseline
+.venv/
+__pycache__/
+build/
+dist/
+venv/
