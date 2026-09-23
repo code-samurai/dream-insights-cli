@@ -1,0 +1,49 @@
+# Outside-in ActivatedOntology. Same document as the JSON twin.
+# Quote cardinality. YAML 1.1 reads an unquoted 1:1-style scalar as a sexagesimal int.
+name: Outside-in quiz funnel
+description: >
+  ActivatedOntology authored outside Discovery. Import or draft PUT
+  full-replaces the property draft. Publish is a separate call.
+active_categories:
+  - marketing
+  - product
+confidence: early
+entities:
+  - name: lead
+    description: A person still in the quiz funnel.
+    category: marketing
+    valid_statuses: [new, qualified, converted]
+    terminal_statuses: [converted]
+    source_event_names: [lead_created, lead_qualified]
+    event_status_bindings:
+      - event_name: lead_created
+        status: new
+        aliases: [form_submit, new_lead]
+      - event_name: lead_qualified
+        status: qualified
+        aliases: []
+    attributes:
+      - name: quiz_score
+        data_type: number
+        description: Score from the completed quiz.
+        is_dimension: true
+  - name: quiz
+    description: One quiz attempt.
+    category: product
+    valid_statuses: [in_progress, completed]
+    terminal_statuses: [completed]
+    source_event_names: [quiz_started, quiz_completed]
+    event_status_bindings:
+      - event_name: quiz_started
+        status: in_progress
+        aliases: []
+      - event_name: quiz_completed
+        status: completed
+        aliases: [quiz_complete]
+    attributes: []
+relationships:
+  - from_entity: quiz
+    to_entity: lead
+    transition_type: produces
+    description: A completed quiz produces a lead.
+    cardinality: "N:1"

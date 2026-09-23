@@ -3,7 +3,8 @@
 **Install:** `pip install "git+https://github.com/code-samurai/dream-insights-cli.git"` (Python 3.10+)
 **Config:** `~/.dream-insights/config.yaml` (mode 0600)
 **Host:** `https://t.leadshook.com`
-**Auth:** `X-API-Key` (personal `di_user_…` or machine reader)
+**Auth (reads):** `X-API-Key` (personal `di_user_…` or machine reader)
+**Auth (authoring):** `Authorization: Bearer` or `X-API-Key` (FOR ME personal key; see `di author`)
 **Output:** `json` (default), `table`, `text`
 
 ---
@@ -19,7 +20,7 @@ di config set api_url https://t.leadshook.com
 di config set default_property_id <property-uuid>
 di config set output_format json
 di health
-di mcp-config --client claude-code|cursor|generic
+di mcp-config --client claude-code|cursor|generic --surface fleet|author
 ```
 
 Set `api_key` via `di auth login` — not `config set` (shell history risk).
@@ -60,3 +61,17 @@ di findings [--severity-floor notable] [--limit N] [--ack-status unread]
 ```
 
 Empty collections are success.
+
+---
+
+## Ontology authoring (FOR ME)
+
+```bash
+di author draft --property-id UUID --file path/to/ontology.yaml|json
+di author import --property-id UUID --ontology-id UUID --file path/to/ontology.yaml|json
+di author publish --property-id UUID [--allow-breaking]
+```
+
+Env: `DREAM_INSIGHTS_AUTHORING_API_KEY=di_user_YOUR_PERSONAL_KEY`.
+Fleet keys (`di_fleet_…`, `DREAM_INSIGHTS_FLEET_API_KEY`) cannot author.
+Materialise follows publish — no separate CLI verb.

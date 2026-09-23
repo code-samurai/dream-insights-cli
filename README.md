@@ -1,16 +1,24 @@
 # dream-insights-cli
 
-Terminal and agent access to [Dream Insights](https://t.leadshook.com) **fleet standing reads**.
+Terminal and agent access to [Dream Insights](https://t.leadshook.com).
 
-Dream Insights returns **data** (ontology, events, entities, timelines, semantic neighbors).
-**You** (or your agent) build the insight. No free-form SQL. No narrative minting.
+Two surfaces, same Connect-apps key model as Discovery:
+
+| Surface | What it does | Key class | Endpoint |
+|---------|--------------|-----------|----------|
+| **Fleet reads** | Live ontology, events, entities, timelines, semantic neighbors | Personal `di_user_…` **or** machine reader | HTTP + `/mcp/fleet/` |
+| **Ontology authoring** | Import / draft / publish an `ActivatedOntology` from outside Discovery | **FOR ME** personal `di_user_…` (or admin) | HTTP `/authoring/…` + `/mcp/author/` |
+
+Dream Insights returns **data**. **You** (or your agent) build the insight. No free-form SQL. No narrative minting. Fleet MCP and machine readers stay **read-only** — they cannot author.
 
 | | |
 |---|---|
 | Host | `https://t.leadshook.com` |
-| Auth | `X-API-Key` |
-| OpenAPI | `GET /api/v1/fleet/openapi.json` |
+| Fleet auth | `X-API-Key` |
+| Authoring auth | `Authorization: Bearer` or `X-API-Key` |
+| Fleet OpenAPI | `GET /api/v1/fleet/openapi.json` |
 | Fleet MCP | `https://t.leadshook.com/mcp/fleet/` |
+| Authoring MCP | `https://t.leadshook.com/mcp/author/` (trailing slash) |
 | CLI | `di` |
 
 ## Install
@@ -31,18 +39,20 @@ pip install -e ".[dev]"
 
 ## FOR ME vs FOR AGENT keys
 
-Mint keys in **Discovery Settings** (Connect apps).
+Mint keys in **Discovery Settings → Connect apps**.
 
 | Audience | Key | Where to use |
 |----------|-----|--------------|
-| **FOR ME** | Personal `di_user_…` | Your laptop CLI, personal scripts, Cloud Code / Desktop as *you* |
-| **FOR AGENT** | Machine reader | Hermes, Cursor/Claude skills, fleet bots, **fleet MCP** |
+| **FOR ME** | Personal `di_user_…` | Your laptop CLI, personal scripts, Cloud Code / Desktop as *you*, **ontology authoring** (`/mcp/author/`, `di author …`) |
+| **FOR AGENT** | Machine reader | Hermes, Cursor/Claude skills for **reads**, fleet bots, **fleet MCP** (`/mcp/fleet/`) |
 
 - Fleet MCP (`/mcp/fleet/`) **refuses** personal `di_user_` keys — use a machine reader.
-- This CLI accepts **either** key class over HTTP with `X-API-Key`.
+- Authoring MCP (`/mcp/author/`) **refuses** fleet / machine-reader keys — use a FOR ME personal key.
+- Authoring tools (`import_ontology`, `write_ontology`, `publish_ontology`) are **not** registered on fleet MCP.
+- This CLI accepts either key class for **fleet HTTP reads**. Authoring commands refuse `di_fleet_…` keys and do not read `DREAM_INSIGHTS_FLEET_API_KEY`.
 - Never commit keys. Never put a personal key in a shared agent runtime. See [SECURITY.md](SECURITY.md).
 
-## Quick start
+## Quick start — fleet reads
 
 ```bash
 di auth login
@@ -58,6 +68,37 @@ di semantic --collection EntityProfile --query "quiz lead"
 
 All query commands default to `--format json` (agent-friendly). Use `--format table` for humans.
 
+## Quick start — ontology authoring (FOR ME)
+
+Build an `ActivatedOntology` outside Discovery, then push: **draft → publish → materialise**. Materialise stays on publish (no separate CLI step).
+
+```bash
+export DREAM_INSIGHTS_BASE_URL=https://t.leadshook.com
+export DREAM_INSIGHTS_AUTHORING_API_KEY=di_user_YOUR_PERSONAL_KEY
+# or: di auth login  (personal key; authoring ignores fleet env keys)
+
+# Create or full-replace the property draft (MCP: write_ontology)
+di author draft \
+  --property-id <property-uuid> \
+  --file examples/activated-ontology.outside-in.yaml
+
+# Or import onto an existing opened ontology version (MCP: import_ontology)
+di author import \
+  --property-id <property-uuid> \
+  --ontology-id <version-uuid> \
+  --file examples/activated-ontology.outside-in.yaml
+
+# Publish when the draft differs from live (MCP: publish_ontology)
+di author publish --property-id <property-uuid>
+```
+
+- `--auth bearer` (default) or `--auth x-api-key`.
+- Import and draft **full-replace** the property draft (no merge). Prefer a synthetic property for experiments.
+- `allow_breaking` on publish is **admin-key only**.
+- Empty documents against a real customer property are dangerous — do not do that.
+
+Example document: [`examples/activated-ontology.outside-in.yaml`](examples/activated-ontology.outside-in.yaml) (JSON twin beside it).
+
 ## Commands
 
 ### Auth & config
@@ -70,8 +111,10 @@ di config show
 di config set api_url https://t.leadshook.com
 di config set default_property_id <property-uuid>
 di health
-di mcp-config --client claude-code
-di mcp-config --client cursor
+di mcp-config --client claude-code --surface fleet
+di mcp-config --client claude-code --surface author
+di mcp-config --client cursor --surface fleet
+di mcp-config --client cursor --surface author
 ```
 
 ### Extract reads
@@ -105,16 +148,30 @@ di findings --property-id <property-uuid>
 
 Empty `items` / `results` lists are **success** — do not invent rows.
 
-## Claude Code / Cursor — MCP JSON placeholders
-
-Fleet MCP URL (machine reader only):
+### Ontology authoring
 
 ```bash
-di mcp-config --client claude-code
-di mcp-config --client cursor
+di author draft --property-id <property-uuid> --file path/to/ontology.yaml
+di author import --property-id <property-uuid> --ontology-id <version-uuid> --file path/to/ontology.yaml
+di author publish --property-id <property-uuid>
 ```
 
-Paste-ready shape (replace the placeholder; do not commit real keys):
+CLI ↔ MCP verbs:
+
+| CLI | MCP tool |
+|-----|----------|
+| `di author import` | `import_ontology` |
+| `di author draft` | `write_ontology` |
+| `di author publish` | `publish_ontology` |
+
+## Claude Code / Cursor — MCP JSON placeholders
+
+### Fleet (FOR AGENT — reads only)
+
+```bash
+di mcp-config --client claude-code --surface fleet
+di mcp-config --client cursor --surface fleet
+```
 
 ```json
 {
@@ -129,32 +186,55 @@ Paste-ready shape (replace the placeholder; do not commit real keys):
 }
 ```
 
-Claude Code: merge into `~/.claude/claude.json` (or project `.mcp.json`).
-Cursor: MCP settings JSON (same shape).
+### Authoring (FOR ME — writes)
 
-Env vars agents often use:
+```bash
+di mcp-config --client claude-code --surface author
+di mcp-config --client cursor --surface author
+```
+
+```json
+{
+  "mcpServers": {
+    "dream-insights-authoring": {
+      "url": "https://t.leadshook.com/mcp/author/",
+      "headers": {
+        "Authorization": "Bearer di_user_YOUR_PERSONAL_KEY"
+      }
+    }
+  }
+}
+```
+
+`X-API-Key: di_user_YOUR_PERSONAL_KEY` is also accepted on authoring. Trailing slash on the URL is required.
+
+Claude Code: merge into `~/.claude/claude.json` (or project `.mcp.json`).
+Cursor: MCP settings JSON (same shape). You may register **both** servers when an agent needs reads and (as you) writes.
+
+Env vars:
 
 | Variable | Value |
 |----------|--------|
 | `DREAM_INSIGHTS_BASE_URL` | `https://t.leadshook.com` |
-| `DREAM_INSIGHTS_API_KEY` / `DREAM_INSIGHTS_FLEET_API_KEY` | Your key (prefer machine reader for agents) |
+| `DREAM_INSIGHTS_API_KEY` | Personal or machine reader (fleet HTTP / CLI reads) |
+| `DREAM_INSIGHTS_FLEET_API_KEY` | Machine reader for fleet agents (**not** used by authoring) |
+| `DREAM_INSIGHTS_AUTHORING_API_KEY` | Personal `di_user_…` for authoring CLI |
 | `DREAM_INSIGHTS_MCP_URL` | `https://t.leadshook.com/mcp/fleet/` |
+| `DREAM_INSIGHTS_AUTHORING_MCP_URL` | `https://t.leadshook.com/mcp/author/` |
 
 ## Agent skill install
 
-This repo ships a Claude Code skill under:
+This repo ships Claude Code skills under:
 
 ```
-.claude/skills/dream-insights-extract/
+.claude/skills/dream-insights-extract/     # fleet reads
+.claude/skills/dream-insights-author/      # ontology authoring (FOR ME)
 ```
-
-Install from GitHub (Claude Code `/install` or skill sync — adjust to your tooling):
 
 ```text
 https://github.com/code-samurai/dream-insights-cli/tree/main/.claude/skills/dream-insights-extract
+https://github.com/code-samurai/dream-insights-cli/tree/main/.claude/skills/dream-insights-author
 ```
-
-Skill name: `dream-insights-extract`. References cover CLI, MCP, and REST.
 
 ## Configuration file
 

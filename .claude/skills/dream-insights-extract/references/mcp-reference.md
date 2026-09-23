@@ -1,9 +1,13 @@
-# MCP Reference — fleet MCP
+# MCP Reference — fleet MCP (reads)
 
 **Endpoint:** `https://t.leadshook.com/mcp/fleet/` (trailing slash)
 **Auth:** `X-API-Key: <MACHINE_READER_API_KEY>`
 **Transport:** Streamable HTTP; JSON responses
 **Key class:** Machine reader (**FOR AGENT**) only — personal `di_user_` keys are refused
+
+Ontology authoring is a **different** MCP: `https://t.leadshook.com/mcp/author/`
+(see skill `dream-insights-author`). Fleet MCP does not register
+`import_ontology`, `write_ontology`, or `publish_ontology`. Machine readers cannot author.
 
 ---
 

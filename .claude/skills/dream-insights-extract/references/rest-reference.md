@@ -55,3 +55,18 @@ curl -sS -H "X-API-Key: $KEY" \
 ```
 
 Empty `items` / `results` is HTTP 200 success.
+
+---
+
+## Ontology authoring (FOR ME — not fleet OpenAPI)
+
+Authoring is separate from fleet standing reads. Prefer MCP `/mcp/author/` or `di author`.
+
+```
+POST /authoring/ontologies/{property_id}/{ontology_id}/import
+PUT  /authoring/ontologies/{property_id}/draft
+POST /authoring/ontologies/{property_id}/publish
+```
+
+Auth: personal `di_user_YOUR_PERSONAL_KEY` via `Authorization: Bearer` or `X-API-Key`.
+Fleet machine readers are refused. See skill `dream-insights-author`.
