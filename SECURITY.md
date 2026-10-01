@@ -11,30 +11,35 @@ session:
 
 ```bash
 export DREAM_INSIGHTS_API_KEY="$(keyring get dream-insights api_key)"
+# authoring (FOR ME):
+export DREAM_INSIGHTS_AUTHORING_API_KEY="$(keyring get dream-insights authoring_api_key)"
 ```
 
 ## Key classes (FOR ME vs FOR AGENT)
 
 | Class | Prefix / mint | Use |
 |-------|---------------|-----|
-| **Personal (FOR ME)** | `di_user_…` from Discovery Settings → Your keys | You: CLI, personal scripts, Cloud Code/Desktop |
-| **Machine reader (FOR AGENT)** | Minted Agent & integration reader | Hermes, fleet bots, coding-agent skills, fleet MCP |
+| **Personal (FOR ME)** | `di_user_…` from Discovery Settings → Connect apps → FOR ME | You: CLI, personal scripts, Cloud Code/Desktop, **ontology authoring** (`/mcp/author/`, `di author …`) |
+| **Machine reader (FOR AGENT)** | Minted Agent & integration reader | Hermes, fleet bots, coding-agent **read** skills, **fleet MCP** only |
 
 - Do **not** put a personal key in a shared agent runtime or commit it to git.
 - Do **not** share one machine-reader secret across unrelated agents.
-- Never send `ADMIN_API_KEY`, Discovery session cookies, or tenant UUIDs in this public repo or in chat logs.
+- Do **not** document or treat fleet / machine-reader keys as able to author. Authoring refuses `di_fleet_…` and does not read `DREAM_INSIGHTS_FLEET_API_KEY`.
+- Never send real `ADMIN_API_KEY` values, Discovery session cookies, or tenant UUIDs in this public repo or in chat logs. Placeholders only (`di_user_YOUR_PERSONAL_KEY`).
 
 ## API key hygiene
 
-- **Never pass your API key as a CLI argument** — use `di auth login` (hidden prompt), not `di config set api_key <key>` (shell history / process list risk).
-- Prefer environment variables for CI: `DREAM_INSIGHTS_API_KEY` or `DREAM_INSIGHTS_FLEET_API_KEY`.
+- **Never pass your API key as a CLI argument** — use `di auth login` (hidden prompt), or env vars for authoring (`DREAM_INSIGHTS_AUTHORING_API_KEY`). Avoid `di config set api_key <key>` (shell history / process list risk). Prefer `--api-key` only when your shell will not retain history.
+- Prefer environment variables for CI: `DREAM_INSIGHTS_API_KEY` or `DREAM_INSIGHTS_FLEET_API_KEY` for reads; `DREAM_INSIGHTS_AUTHORING_API_KEY` for writes.
 - All requests use HTTPS. `api_url` must start with `https://`.
 - Revoke unused keys in Discovery Settings (or ask ops to revoke a machine reader).
 
-## Auth header
+## Auth headers
 
-This CLI sends `X-API-Key: <key>` by default. Bearer is also accepted by the
-fleet HTTP surface; prefer `X-API-Key` for consistency with MCP clients.
+| Surface | Preferred header |
+|---------|------------------|
+| Fleet HTTP / fleet MCP | `X-API-Key: <key>` |
+| Authoring HTTP / authoring MCP | `Authorization: Bearer <key>` or `X-API-Key: <key>` |
 
 ## Reporting a vulnerability
 

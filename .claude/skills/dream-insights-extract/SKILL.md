@@ -1,6 +1,6 @@
 ---
 name: dream-insights-extract
-description: Use when extracting Dream Insights fleet data — live ontology, events, entities, person timelines, transitions, and semantic/similar search. Covers CLI (di), fleet MCP tools, and REST with X-API-Key. Data only; consumer builds insight.
+description: Use when extracting Dream Insights fleet data — live ontology, events, entities, person timelines, transitions, and semantic/similar search. Covers CLI (di), fleet MCP tools, and REST with X-API-Key. Data only; consumer builds insight. For ontology writes use dream-insights-author instead.
 compatibility:
   cli: pip install "git+https://github.com/code-samurai/dream-insights-cli.git"
   mcp: https://t.leadshook.com/mcp/fleet/
@@ -11,6 +11,9 @@ compatibility:
 
 Enable agents to **read** Dream Insights standing fleet data and reason locally.
 DI does not mint a narrative and does not accept free-form SQL.
+
+Ontology **authoring** (import / draft / publish) is a different skill and MCP:
+`dream-insights-author` → `https://t.leadshook.com/mcp/author/`. Fleet keys cannot author.
 
 ## Choose your access path
 
@@ -47,6 +50,7 @@ Config: `~/.dream-insights/config.yaml` (mode 0600).
 ```
 
 Personal `di_user_` keys are **refused** by fleet MCP.
+Fleet MCP does **not** expose `import_ontology`, `write_ontology`, or `publish_ontology`.
 
 ### REST
 

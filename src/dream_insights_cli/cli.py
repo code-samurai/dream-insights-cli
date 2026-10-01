@@ -1,4 +1,4 @@
-"""Main CLI entry point — click command groups for Dream Insights fleet reads."""
+"""Main CLI entry point — fleet reads + FOR ME ontology authoring."""
 
 from __future__ import annotations
 
@@ -118,10 +118,11 @@ def _property_option(required: bool = False):
 )
 @click.pass_context
 def main(ctx, output_format):
-    """Dream Insights CLI — fleet standing reads (data only; you build the insight).
+    """Dream Insights CLI — fleet reads and FOR ME ontology authoring.
 
-    Authenticate with a personal key (di_user_…) or a machine reader.
-    Host: https://t.leadshook.com  ·  Auth: X-API-Key
+    Fleet reads: personal key (di_user_…) or machine reader · X-API-Key
+    Authoring: personal FOR ME key (or admin via env) · /mcp/author/ peer
+    Host: https://t.leadshook.com
     """
     ctx.ensure_object(dict)
     if output_format:
@@ -260,46 +261,68 @@ def health_cmd(ctx):
     show_default=True,
     help="Which MCP client JSON shape to print.",
 )
-def mcp_config_cmd(client: str):
-    """Print paste-ready MCP JSON placeholders (fleet MCP URL).
+@click.option(
+    "--surface",
+    type=click.Choice(["fleet", "author"]),
+    default="fleet",
+    show_default=True,
+    help="fleet = read-only machine reader; author = FOR ME ontology writes.",
+)
+def mcp_config_cmd(client: str, surface: str):
+    """Print paste-ready MCP JSON placeholders.
 
-    Fleet MCP requires a machine reader (FOR AGENT). Personal di_user_ keys
-    are refused by /mcp/fleet/.
+    Fleet MCP (/mcp/fleet/) requires a machine reader (FOR AGENT).
+    Authoring MCP (/mcp/author/) requires a personal FOR ME key (di_user_…).
+    Fleet keys cannot author. Authoring tools are not on fleet MCP.
     """
     import json
 
-    url = "https://t.leadshook.com/mcp/fleet/"
-    headers = {"X-API-Key": "<MACHINE_READER_API_KEY>"}
+    if surface == "author":
+        url = "https://t.leadshook.com/mcp/author/"
+        headers = {"Authorization": "Bearer di_user_YOUR_PERSONAL_KEY"}
+        # X-API-Key is also accepted; Bearer matches the authoring CLI default.
+        server_name = "dream-insights-authoring"
+        note = (
+            "\n# Authoring MCP: personal FOR ME key (di_user_…). "
+            "Trailing slash required. Fleet/machine-reader keys are refused."
+        )
+        label = "authoring"
+    else:
+        url = "https://t.leadshook.com/mcp/fleet/"
+        headers = {"X-API-Key": "<MACHINE_READER_API_KEY>"}
+        server_name = "dream-insights"
+        note = (
+            "\n# Fleet MCP: machine reader (FOR AGENT). "
+            "Personal di_user_ keys are refused. Cannot author ontologies."
+        )
+        label = "fleet"
 
     if client == "claude-code":
         payload = {
             "mcpServers": {
-                "dream-insights": {
+                server_name: {
                     "url": url,
                     "headers": headers,
                 }
             }
         }
-        click.echo("# ~/.claude/claude.json (or project .mcp.json) — replace the placeholder key")
+        click.echo(f"# ~/.claude/claude.json (or project .mcp.json) — {label} MCP placeholders")
     elif client == "cursor":
         payload = {
             "mcpServers": {
-                "dream-insights": {
+                server_name: {
                     "url": url,
                     "headers": headers,
                 }
             }
         }
-        click.echo("# Cursor MCP settings (JSON) — replace the placeholder key")
+        click.echo(f"# Cursor MCP settings (JSON) — {label} MCP placeholders")
     else:
         payload = {"url": url, "headers": headers}
-        click.echo("# Generic fleet MCP connection")
+        click.echo(f"# Generic {label} MCP connection")
 
     click.echo(json.dumps(payload, indent=2))
-    click.echo(
-        "\n# Note: use a machine reader (FOR AGENT). Personal di_user_ keys are refused by fleet MCP.",
-        err=True,
-    )
+    click.echo(note, err=True)
 
 
 # ---------------------------------------------------------------------------
@@ -563,6 +586,113 @@ def findings_cmd(ctx, property_id, severity_floor, limit, ack_status):
         ack_status=ack_status,
     )
 
+
+
+# ---------------------------------------------------------------------------
+# Ontology authoring (FOR ME) — peer of /mcp/author/
+# ---------------------------------------------------------------------------
+
+
+def _author_shared(fn):
+    fn = click.option(
+        "--auth",
+        type=click.Choice(("bearer", "x-api-key")),
+        default="bearer",
+        show_default=True,
+        help="bearer sends Authorization: Bearer. x-api-key sends X-API-Key.",
+    )(fn)
+    fn = click.option(
+        "--api-key",
+        default=None,
+        help=(
+            "Personal Connect-apps key (di_user_…) or admin key. "
+            "Prefer DREAM_INSIGHTS_AUTHORING_API_KEY. Fleet keys are refused."
+        ),
+    )(fn)
+    return fn
+
+
+@main.group("author")
+def author_group():
+    """Import, draft-write, and publish an ontology (FOR ME authoring path).
+
+    Peer of https://t.leadshook.com/mcp/author/. Uses a personal Connect-apps
+    key (Settings → Connect apps → FOR ME). Machine readers stay on fleet reads.
+    Materialise runs after publish — not a separate CLI step.
+    """
+
+
+@author_group.command("import")
+@_author_shared
+@click.option("--property-id", type=click.UUID, required=True, help=f"Property UUID. Example: {_PLACEHOLDER_PROPERTY}")
+@click.option("--ontology-id", type=click.UUID, required=True, help="Opened ontology version UUID.")
+@click.option("--file", "document_path", required=True, type=click.Path(exists=True, dir_okay=False))
+@click.pass_context
+def author_import_cmd(ctx, auth, api_key, property_id, ontology_id, document_path):
+    """Import an ActivatedOntology onto the draft. Does not publish.
+
+    MCP peer: import_ontology. Requires an existing ontology version id.
+    Full-replaces the property draft.
+    """
+    from dream_insights_cli.authoring import AuthoringClient, load_authoring_document
+    from dream_insights_cli.client import ClickExit
+
+    document = load_authoring_document(document_path)
+    try:
+        data = AuthoringClient(api_key=api_key, auth=auth).import_ontology(
+            property_id, ontology_id, document
+        )
+    except ClickExit as e:
+        _emit_error(e)
+    format_output(data, _get_format(ctx))
+
+
+@author_group.command("draft")
+@_author_shared
+@click.option("--property-id", type=click.UUID, required=True, help=f"Property UUID. Example: {_PLACEHOLDER_PROPERTY}")
+@click.option("--file", "document_path", required=True, type=click.Path(exists=True, dir_okay=False))
+@click.pass_context
+def author_draft_cmd(ctx, auth, api_key, property_id, document_path):
+    """Full-replace the property draft (creates it when missing). Does not publish.
+
+    MCP peer: write_ontology.
+    """
+    from dream_insights_cli.authoring import AuthoringClient, load_authoring_document
+    from dream_insights_cli.client import ClickExit
+
+    document = load_authoring_document(document_path)
+    try:
+        data = AuthoringClient(api_key=api_key, auth=auth).write_ontology(property_id, document)
+    except ClickExit as e:
+        _emit_error(e)
+    format_output(data, _get_format(ctx))
+
+
+@author_group.command("publish")
+@_author_shared
+@click.option("--property-id", type=click.UUID, required=True, help=f"Property UUID. Example: {_PLACEHOLDER_PROPERTY}")
+@click.option(
+    "--allow-breaking",
+    is_flag=True,
+    default=False,
+    help="Admin key only. Personal keys are refused when this is set.",
+)
+@click.pass_context
+def author_publish_cmd(ctx, auth, api_key, property_id, allow_breaking):
+    """Publish the draft when it differs from live. Materialise follows publish.
+
+    MCP peer: publish_ontology.
+    """
+    from dream_insights_cli.authoring import AuthoringClient
+    from dream_insights_cli.client import ClickExit
+
+    try:
+        data = AuthoringClient(api_key=api_key, auth=auth).publish_ontology(
+            property_id, allow_breaking=allow_breaking
+        )
+    except ClickExit as e:
+        _emit_error(e)
+    format_output(data, _get_format(ctx))
 
 if __name__ == "__main__":
     main()

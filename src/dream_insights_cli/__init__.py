@@ -1,3 +1,3 @@
-"""Dream Insights CLI — terminal access to fleet standing reads."""
+"""Dream Insights CLI — fleet reads and FOR ME ontology authoring."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
