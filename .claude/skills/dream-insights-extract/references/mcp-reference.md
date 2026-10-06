@@ -63,6 +63,7 @@ Env:
 | `get_roas` | Channel ROAS |
 | `get_campaign_roas` | Campaign ROAS |
 | `get_findings` | Findings feed |
+| `get_ledger_metrics` | Ledger rates with N and a date range. No blended score. `date_from`, `date_to` required. |
 
 Arguments match HTTP query/path params, including `property_id`.
 Empty `rows` / `items` / `results` is success. Out-of-scope property → error.

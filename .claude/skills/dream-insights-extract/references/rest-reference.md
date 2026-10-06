@@ -41,6 +41,7 @@ GET /api/v1/properties/{property_id}/search/semantic?collection=EntityProfile&qu
 GET /api/v1/properties/{property_id}/roas?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&model_type=linear
 GET /api/v1/properties/{property_id}/campaign-roas?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
 GET /api/v1/properties/{property_id}/findings?severity_floor=notable&limit=100
+GET /api/v1/properties/{property_id}/ledger/metrics?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
 ```
 
 ## Example

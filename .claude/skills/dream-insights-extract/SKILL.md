@@ -91,7 +91,7 @@ Extract: `get_ontology`, `list_events`, `get_event`, `list_entities`, `get_entit
 Query helpers: `search_similar_persons`, `search_similar_cohorts`,
 `search_similar_pathways`, `search_semantic`.
 
-Overlays: `get_roas`, `get_campaign_roas`, `get_findings`.
+Overlays: `get_roas`, `get_campaign_roas`, `get_findings`, `get_ledger_metrics`.
 
 All take `property_id`. Tool JSON matches the HTTP body.
 

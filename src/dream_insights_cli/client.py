@@ -25,6 +25,7 @@ ROUTES: dict[str, str] = {
     "roas": "/api/v1/properties/{property_id}/roas",
     "campaign-roas": "/api/v1/properties/{property_id}/campaign-roas",
     "findings": "/api/v1/properties/{property_id}/findings",
+    "ledger-metrics": "/api/v1/properties/{property_id}/ledger/metrics",
 }
 
 MCP_FLEET_PATH = "/mcp/fleet/"

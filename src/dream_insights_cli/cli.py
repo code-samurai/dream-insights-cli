@@ -587,6 +587,36 @@ def findings_cmd(ctx, property_id, severity_floor, limit, ack_status):
     )
 
 
+@main.command("ledger-metrics")
+@_property_option()
+@click.option("--date-from", required=True, callback=_iso_date, help="Inclusive start, YYYY-MM-DD.")
+@click.option("--date-to", required=True, callback=_iso_date, help="Inclusive end, YYYY-MM-DD.")
+@click.option(
+    "--product",
+    type=click.Choice(("dream-insights", "weezdom", "hermes", "cloudflare")),
+    default=None,
+)
+@click.option("--ontology-version", default=None, callback=_optional_text)
+@click.option("--field", default=None, callback=_optional_text, help="subject_kind, for example alias.")
+@click.pass_context
+def ledger_metrics_cmd(ctx, property_id, date_from, date_to, product, ontology_version, field):
+    """Read-only ledger metrics. Rates carry N and the date range. No blended score.
+
+    Host: https://t.leadshook.com
+    MCP peer: get_ledger_metrics
+    """
+    _run_read(
+        ctx,
+        "ledger-metrics",
+        property_id=property_id,
+        date_from=date_from,
+        date_to=date_to,
+        product=product,
+        ontology_version=ontology_version,
+        field=field,
+    )
+
+
 
 # ---------------------------------------------------------------------------
 # Ontology authoring (FOR ME) — peer of /mcp/author/

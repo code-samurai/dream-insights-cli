@@ -147,6 +147,7 @@ di similar-pathways --property-id <property-uuid> --channels organic,paid
 di roas --property-id <property-uuid> --date-from 2026-01-01 --date-to 2026-01-31
 di campaign-roas --property-id <property-uuid> --date-from 2026-01-01 --date-to 2026-01-31
 di findings --property-id <property-uuid>
+di ledger-metrics --property-id <property-uuid> --date-from 2026-01-01 --date-to 2026-01-31
 ```
 
 Empty `items` / `results` lists are **success** — do not invent rows.
@@ -176,6 +177,7 @@ CLI ↔ MCP verbs:
 | `di author cq list` | `list_competency_questions` |
 | `di author cq write` | `write_competency_question` |
 | `di author cq confirm` | `confirm_competency_question` |
+| `di ledger-metrics` | `get_ledger_metrics` |
 
 ## Claude Code / Cursor — MCP JSON placeholders
 
