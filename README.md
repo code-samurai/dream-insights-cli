@@ -48,7 +48,7 @@ Mint keys in **Discovery Settings → Connect apps**.
 
 - Fleet MCP (`/mcp/fleet/`) **refuses** personal `di_user_` keys — use a machine reader.
 - Authoring MCP (`/mcp/author/`) **refuses** fleet / machine-reader keys — use a FOR ME personal key.
-- Authoring tools (`import_ontology`, `write_ontology`, `publish_ontology`) are **not** registered on fleet MCP.
+- Authoring tools (`import_ontology`, `write_ontology`, `publish_ontology`, `check_ontology`, `list_competency_questions`, `write_competency_question`, `confirm_competency_question`) are **not** registered on fleet MCP.
 - This CLI accepts either key class for **fleet HTTP reads**. Authoring commands refuse `di_fleet_…` keys and do not read `DREAM_INSIGHTS_FLEET_API_KEY`.
 - Never commit keys. Never put a personal key in a shared agent runtime. See [SECURITY.md](SECURITY.md).
 
@@ -90,6 +90,9 @@ di author import \
 
 # Publish when the draft differs from live (MCP: publish_ontology)
 di author publish --property-id <property-uuid>
+
+# Read-only quality report (MCP: check_ontology). No grade.
+di author check --property <property-uuid>
 ```
 
 - `--auth bearer` (default) or `--auth x-api-key`.
@@ -154,7 +157,13 @@ Empty `items` / `results` lists are **success** — do not invent rows.
 di author draft --property-id <property-uuid> --file path/to/ontology.yaml
 di author import --property-id <property-uuid> --ontology-id <version-uuid> --file path/to/ontology.yaml
 di author publish --property-id <property-uuid>
+di author check --property <property-uuid>
+di author cq list --property <property-uuid>
+di author cq write --property <property-uuid> --text "How many leads convert?" --entity lead --status new --time-window 7d
+di author cq confirm --property <property-uuid> --question-id <question-uuid>
 ```
+
+`di author check` returns `breaks_extraction`, `worth_fixing`, `questions`, and `schema_diff`. It does not write and it has no grade. Worth-fixing findings do not fail publish.
 
 CLI ↔ MCP verbs:
 
@@ -163,6 +172,10 @@ CLI ↔ MCP verbs:
 | `di author import` | `import_ontology` |
 | `di author draft` | `write_ontology` |
 | `di author publish` | `publish_ontology` |
+| `di author check` | `check_ontology` |
+| `di author cq list` | `list_competency_questions` |
+| `di author cq write` | `write_competency_question` |
+| `di author cq confirm` | `confirm_competency_question` |
 
 ## Claude Code / Cursor — MCP JSON placeholders
 

@@ -229,3 +229,64 @@ class TestMcpConfigSurfaces:
         assert "/mcp/author/" in result.output
         assert "di_user_YOUR_PERSONAL_KEY" in result.output
         assert "dream-insights-authoring" in result.output
+
+
+class TestAuthorCheck:
+    def test_check_gets_the_quality_report(self, mock_config):
+        payload = {
+            "breaks_extraction": [],
+            "worth_fixing": [],
+            "questions": [],
+            "schema_diff": {"added_entities": [], "breaking_flags": []},
+        }
+        with respx.mock(base_url=API_URL) as rsps:
+            route = rsps.get(f"/authoring/ontologies/{PROPERTY_ID}/draft/quality").mock(
+                return_value=httpx.Response(200, json=payload)
+            )
+            runner = CliRunner()
+            result = runner.invoke(main, ["author", "check", "--property", PROPERTY_ID])
+        assert result.exit_code == 0, result.output
+        assert route.called
+        body = json.loads(result.output)
+        assert body["breaks_extraction"] == []
+        assert "grade" not in body
+
+
+class TestAuthorCompetencyQuestions:
+    def test_cq_write_posts_the_structured_path(self, mock_config):
+        with respx.mock(base_url=API_URL) as rsps:
+            route = rsps.post(
+                f"/authoring/ontologies/{PROPERTY_ID}/competency-questions"
+            ).mock(return_value=httpx.Response(200, json={"revision": 1}))
+            runner = CliRunner()
+            result = runner.invoke(
+                main,
+                [
+                    "author",
+                    "cq",
+                    "write",
+                    "--property",
+                    PROPERTY_ID,
+                    "--text",
+                    "How many leads?",
+                    "--critical",
+                    "--entity",
+                    "lead",
+                    "--status",
+                    "new",
+                    "--time-window",
+                    "7d",
+                ],
+            )
+        assert result.exit_code == 0, result.output
+        sent = json.loads(route.calls[0].request.content.decode())
+        assert sent == {
+            "text": "How many leads?",
+            "critical": True,
+            "entity_name": "lead",
+            "status_name": "new",
+            "dimension_name": None,
+            "dimension_value": None,
+            "time_window": "7d",
+            "relationship_key": None,
+        }
