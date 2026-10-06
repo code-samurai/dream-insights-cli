@@ -28,8 +28,21 @@ AUTHORING_MACHINE_DETAIL = "Machine readers cannot author ontologies"
 IMPORT_PATH = "/authoring/ontologies/{property_id}/{ontology_id}/import"
 DRAFT_PATH = "/authoring/ontologies/{property_id}/draft"
 PUBLISH_PATH = "/authoring/ontologies/{property_id}/publish"
+QUALITY_PATH = "/authoring/ontologies/{property_id}/draft/quality"
+COMPETENCY_QUESTIONS_PATH = "/authoring/ontologies/{property_id}/competency-questions"
+COMPETENCY_QUESTION_CONFIRM_PATH = (
+    "/authoring/ontologies/{property_id}/competency-questions/{question_id}/confirm"
+)
 
-AUTHORING_TOOLS = ("import_ontology", "write_ontology", "publish_ontology")
+AUTHORING_TOOLS = (
+    "import_ontology",
+    "write_ontology",
+    "publish_ontology",
+    "check_ontology",
+    "list_competency_questions",
+    "write_competency_question",
+    "confirm_competency_question",
+)
 
 DEFAULT_TIMEOUT = 60.0
 AuthMode = Literal["bearer", "x-api-key"]
@@ -194,3 +207,27 @@ class AuthoringClient:
         path = _render_path(PUBLISH_PATH, property_id=property_id)
         params = {"allow_breaking": "true"} if allow_breaking else None
         return self._request("POST", path, params=params)
+
+    def check_ontology(self, property_id: Any) -> Any:
+        """GET the draft quality report. Read-only. No grade."""
+        path = _render_path(QUALITY_PATH, property_id=property_id)
+        return self._request("GET", path)
+
+    def list_competency_questions(self, property_id: Any) -> Any:
+        """GET current competency questions for the property."""
+        path = _render_path(COMPETENCY_QUESTIONS_PATH, property_id=property_id)
+        return self._request("GET", path)
+
+    def write_competency_question(self, property_id: Any, body: dict) -> Any:
+        """POST a new question or the next revision. Does not confirm."""
+        path = _render_path(COMPETENCY_QUESTIONS_PATH, property_id=property_id)
+        return self._request("POST", path, json_body=body)
+
+    def confirm_competency_question(self, property_id: Any, question_id: Any) -> Any:
+        """POST person-confirm. The server records the caller."""
+        path = _render_path(
+            COMPETENCY_QUESTION_CONFIRM_PATH,
+            property_id=property_id,
+            question_id=question_id,
+        )
+        return self._request("POST", path, json_body={})

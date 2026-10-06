@@ -694,5 +694,128 @@ def author_publish_cmd(ctx, auth, api_key, property_id, allow_breaking):
         _emit_error(e)
     format_output(data, _get_format(ctx))
 
+
+@author_group.command("check")
+@_author_shared
+@click.option(
+    "--property-id",
+    "--property",
+    "property_id",
+    type=click.UUID,
+    required=True,
+    help=f"Property UUID. Example: {_PLACEHOLDER_PROPERTY}",
+)
+@click.pass_context
+def author_check_cmd(ctx, auth, api_key, property_id):
+    """Read-only draft quality report. Same checks as publish. No grade.
+
+    MCP peer: check_ontology.
+    """
+    from dream_insights_cli.authoring import AuthoringClient
+    from dream_insights_cli.client import ClickExit
+
+    try:
+        data = AuthoringClient(api_key=api_key, auth=auth).check_ontology(property_id)
+    except ClickExit as e:
+        _emit_error(e)
+    format_output(data, _get_format(ctx))
+
+
+@author_group.group("cq")
+def author_cq_group():
+    """List, write, and confirm competency questions (FOR ME)."""
+
+
+@author_cq_group.command("list")
+@_author_shared
+@click.option("--property-id", "--property", "property_id", type=click.UUID, required=True)
+@click.pass_context
+def author_cq_list_cmd(ctx, auth, api_key, property_id):
+    """List current competency questions. MCP peer: list_competency_questions."""
+    from dream_insights_cli.authoring import AuthoringClient
+    from dream_insights_cli.client import ClickExit
+
+    try:
+        data = AuthoringClient(api_key=api_key, auth=auth).list_competency_questions(property_id)
+    except ClickExit as e:
+        _emit_error(e)
+    format_output(data, _get_format(ctx))
+
+
+@author_cq_group.command("write")
+@_author_shared
+@click.option("--property-id", "--property", "property_id", type=click.UUID, required=True)
+@click.option("--text", required=True, help="Question the owner wrote.")
+@click.option("--critical", is_flag=True, default=False)
+@click.option("--entity", "entity_name", default=None)
+@click.option("--status", "status_name", default=None)
+@click.option("--dimension", "dimension_name", default=None)
+@click.option("--dimension-value", default=None)
+@click.option("--time-window", default=None)
+@click.option("--relationship", "relationship_key", default=None)
+@click.option("--question-id", type=click.UUID, default=None)
+@click.pass_context
+def author_cq_write_cmd(
+    ctx,
+    auth,
+    api_key,
+    property_id,
+    text,
+    critical,
+    entity_name,
+    status_name,
+    dimension_name,
+    dimension_value,
+    time_window,
+    relationship_key,
+    question_id,
+):
+    """Create a question or append a revision. Does not confirm it.
+
+    MCP peer: write_competency_question.
+    """
+    from dream_insights_cli.authoring import AuthoringClient
+    from dream_insights_cli.client import ClickExit
+
+    body = {
+        "text": text,
+        "critical": critical,
+        "entity_name": entity_name,
+        "status_name": status_name,
+        "dimension_name": dimension_name,
+        "dimension_value": dimension_value,
+        "time_window": time_window,
+        "relationship_key": relationship_key,
+    }
+    if question_id is not None:
+        body["question_id"] = str(question_id)
+    try:
+        data = AuthoringClient(api_key=api_key, auth=auth).write_competency_question(
+            property_id, body
+        )
+    except ClickExit as e:
+        _emit_error(e)
+    format_output(data, _get_format(ctx))
+
+
+@author_cq_group.command("confirm")
+@_author_shared
+@click.option("--property-id", "--property", "property_id", type=click.UUID, required=True)
+@click.option("--question-id", type=click.UUID, required=True)
+@click.pass_context
+def author_cq_confirm_cmd(ctx, auth, api_key, property_id, question_id):
+    """Person-confirm the current revision. MCP peer: confirm_competency_question."""
+    from dream_insights_cli.authoring import AuthoringClient
+    from dream_insights_cli.client import ClickExit
+
+    try:
+        data = AuthoringClient(api_key=api_key, auth=auth).confirm_competency_question(
+            property_id, question_id
+        )
+    except ClickExit as e:
+        _emit_error(e)
+    format_output(data, _get_format(ctx))
+
+
 if __name__ == "__main__":
     main()

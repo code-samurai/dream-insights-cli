@@ -63,6 +63,10 @@ Env: `DREAM_INSIGHTS_AUTHORING_MCP_URL`, `DREAM_INSIGHTS_AUTHORING_API_KEY`.
 | 1a | `import_ontology` | `di author import` | Needs existing ontology version id; writes draft; does not publish |
 | 1b | `write_ontology` | `di author draft` | Creates or full-replaces draft; does not publish |
 | 2 | `publish_ontology` | `di author publish` | Publish saga; materialise follows |
+| — | `check_ontology` | `di author check --property` | Read-only quality report. No grade. Does not write |
+| — | `list_competency_questions` | `di author cq list` | Current questions, including unconfirmed |
+| — | `write_competency_question` | `di author cq write` | Create or revise. Does not confirm |
+| — | `confirm_competency_question` | `di author cq confirm` | Person confirms. That confirmation is gold |
 
 ```bash
 export DREAM_INSIGHTS_BASE_URL=https://t.leadshook.com
@@ -70,7 +74,10 @@ export DREAM_INSIGHTS_AUTHORING_API_KEY=di_user_YOUR_PERSONAL_KEY
 
 di author draft --property-id <property-uuid> --file examples/activated-ontology.outside-in.yaml
 di author publish --property-id <property-uuid>
+di author check --property <property-uuid>
 ```
+
+`check` returns breaks-extraction and worth-fixing findings. Only breaks-extraction fails publish. There is no grade.
 
 A draft that matches live, an empty new draft, or a publish already in flight
 returns 409. Personal keys cannot set `allow_breaking`.

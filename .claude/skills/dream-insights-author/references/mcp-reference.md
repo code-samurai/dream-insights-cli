@@ -15,6 +15,10 @@ Fleet MCP (`/mcp/fleet/`) does **not** expose these tools.
 | `import_ontology` | `property_id`, `ontology_id`, `document` → import onto draft (no publish) |
 | `write_ontology` | `property_id`, `document` → create or full-replace draft (no publish) |
 | `publish_ontology` | `property_id`, optional `allow_breaking` (admin only) → publish; materialise follows |
+| `check_ontology` | `property_id` → read-only draft quality report (no grade, no write) |
+| `list_competency_questions` | `property_id` → current questions |
+| `write_competency_question` | `property_id`, `text`, optional path fields and `question_id` → create or revise, not confirm |
+| `confirm_competency_question` | `property_id`, `question_id` → person-confirm the current revision |
 
 `document` is an `ActivatedOntology` object. Full-replace. Identity envelope fields are ignored.
 
