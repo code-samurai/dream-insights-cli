@@ -1,0 +1,787 @@
+{
+  "$defs": {
+    "ActorKind": {
+      "enum": [
+        "person",
+        "code",
+        "none"
+      ],
+      "title": "ActorKind",
+      "type": "string"
+    },
+    "DecisionValue": {
+      "enum": [
+        "accept",
+        "pick_other",
+        "neither",
+        "dismiss",
+        "edit_after_accept"
+      ],
+      "title": "DecisionValue",
+      "type": "string"
+    },
+    "DraftReviewExtension": {
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "ship",
+                "ship_with_nits",
+                "kill"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Verbatim review verdict",
+          "title": "Verdict"
+        }
+      },
+      "title": "DraftReviewExtension",
+      "type": "object"
+    },
+    "EventKind": {
+      "description": "Append-only event kinds, all keyed to one ``decision_id``.\n\n* ``decision``  - a suggestion was produced (and maybe shown). ``outcome``\n  may be inlined when the product knows it at emit time.\n* ``outcome``   - the later person/code outcome for an earlier decision.\n* ``reversal``  - a later change undid an accepted decision (#407).",
+      "enum": [
+        "decision",
+        "outcome",
+        "reversal"
+      ],
+      "title": "EventKind",
+      "type": "string"
+    },
+    "EvidenceShown": {
+      "additionalProperties": false,
+      "properties": {
+        "counts": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counts"
+        },
+        "events_moved": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Events Moved"
+        },
+        "questions_affected": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Questions Affected"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Plain-language reason shown to the person",
+          "title": "Why"
+        }
+      },
+      "title": "EvidenceShown",
+      "type": "object"
+    },
+    "Exposure": {
+      "additionalProperties": false,
+      "description": "UX fields (Nik / UX Expert, 6 Oct 2026).",
+      "properties": {
+        "ab_opened": {
+          "default": false,
+          "title": "Ab Opened",
+          "type": "boolean"
+        },
+        "shown": {
+          "description": "False for record-only runs",
+          "title": "Shown",
+          "type": "boolean"
+        },
+        "surface": {
+          "description": "Where it was shown, e.g. di.discovery.review_list",
+          "minLength": 1,
+          "title": "Surface",
+          "type": "string"
+        },
+        "time_to_decide_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time To Decide Ms"
+        },
+        "why_opened": {
+          "default": false,
+          "title": "Why Opened",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "surface",
+        "shown"
+      ],
+      "title": "Exposure",
+      "type": "object"
+    },
+    "Extensions": {
+      "additionalProperties": true,
+      "description": "Typed block per ``subject_kind``. Known kinds are typed; other kinds may\nadd their own block under their ``subject_kind`` name.",
+      "properties": {
+        "draft_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DraftReviewExtension"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "format_match": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FormatMatchExtension"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "routing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoutingExtension"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Extensions",
+      "type": "object"
+    },
+    "FormatMatchExtension": {
+      "additionalProperties": false,
+      "properties": {
+        "platform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Platform"
+        },
+        "post_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Post Type"
+        },
+        "surface": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Surface"
+        }
+      },
+      "title": "FormatMatchExtension",
+      "type": "object"
+    },
+    "Mode": {
+      "enum": [
+        "record_only",
+        "live"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "OntologyStampEntry": {
+      "additionalProperties": false,
+      "description": "One version the suggestion was made against. Use ``kind: none`` to say\nexplicitly that no live verified read was available.",
+      "properties": {
+        "data_ready": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Ready"
+        },
+        "kind": {
+          "$ref": "#/$defs/StampKind"
+        },
+        "published": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "git sha / playbook revision",
+          "title": "Revision"
+        },
+        "source": {
+          "$ref": "#/$defs/Product"
+        },
+        "version_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Id"
+        }
+      },
+      "required": [
+        "source",
+        "kind"
+      ],
+      "title": "OntologyStampEntry",
+      "type": "object"
+    },
+    "OptionShown": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Per-option confidence",
+          "title": "Confidence"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text the person saw",
+          "title": "Label"
+        },
+        "value": {
+          "description": "Machine value of the option",
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "OptionShown",
+      "type": "object"
+    },
+    "Outcome": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_kind": {
+          "$ref": "#/$defs/ActorKind"
+        },
+        "actor_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Opaque actor id; never an email or name",
+          "title": "Actor Ref"
+        },
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DecisionValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Required unless actor_kind is 'none'"
+        },
+        "final_value": {
+          "description": "Ordered set actually kept",
+          "items": {
+            "type": "string"
+          },
+          "title": "Final Value",
+          "type": "array"
+        }
+      },
+      "required": [
+        "actor_kind",
+        "decided_at"
+      ],
+      "title": "Outcome",
+      "type": "object"
+    },
+    "Product": {
+      "enum": [
+        "dream-insights",
+        "weezdom",
+        "hermes",
+        "cloudflare"
+      ],
+      "title": "Product",
+      "type": "string"
+    },
+    "Reversal": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "reversal_kind": {
+          "$ref": "#/$defs/ReversalKind"
+        },
+        "reversed_at": {
+          "format": "date-time",
+          "title": "Reversed At",
+          "type": "string"
+        },
+        "reversed_by_decision_id": {
+          "minLength": 1,
+          "title": "Reversed By Decision Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reversed_by_decision_id",
+        "reversal_kind",
+        "reversed_at"
+      ],
+      "title": "Reversal",
+      "type": "object"
+    },
+    "ReversalKind": {
+      "enum": [
+        "remap",
+        "merge",
+        "rename",
+        "cq_regression",
+        "delete",
+        "kill_after_ship",
+        "re_review"
+      ],
+      "title": "ReversalKind",
+      "type": "string"
+    },
+    "RoutingExtension": {
+      "additionalProperties": false,
+      "properties": {
+        "effective_size": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective Size"
+        },
+        "fan_out_cap": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fan Out Cap"
+        },
+        "size": {
+          "minLength": 1,
+          "title": "Size",
+          "type": "string"
+        },
+        "size_confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Confidence"
+        }
+      },
+      "required": [
+        "size"
+      ],
+      "title": "RoutingExtension",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "description": "Where the decision lives. DI sets ``property_id``; other products use\n``product_scope`` (workspace, org, channel ...). At least one is set.",
+      "properties": {
+        "product_scope": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Non-DI scope, e.g. weezdom org id or hermes workspace",
+          "title": "Product Scope"
+        },
+        "property_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DI property id (uuid)",
+          "title": "Property Id"
+        }
+      },
+      "title": "Scope",
+      "type": "object"
+    },
+    "StampKind": {
+      "enum": [
+        "ontology",
+        "playbook",
+        "routing_profile",
+        "none"
+      ],
+      "title": "StampKind",
+      "type": "string"
+    },
+    "Suggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Overall confidence",
+          "title": "Confidence"
+        },
+        "evidence_shown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceShown"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "model_id": {
+          "description": "Actual model id that answered",
+          "minLength": 1,
+          "title": "Model Id",
+          "type": "string"
+        },
+        "ontology_stamp": {
+          "items": {
+            "$ref": "#/$defs/OntologyStampEntry"
+          },
+          "minItems": 1,
+          "title": "Ontology Stamp",
+          "type": "array"
+        },
+        "options_shown": {
+          "description": "Ordered exactly as displayed (index 0 = top)",
+          "items": {
+            "$ref": "#/$defs/OptionShown"
+          },
+          "title": "Options Shown",
+          "type": "array"
+        },
+        "preselected": {
+          "description": "Option values pre-selected in the UI (ordered set)",
+          "items": {
+            "type": "string"
+          },
+          "title": "Preselected",
+          "type": "array"
+        },
+        "prompt_version": {
+          "minLength": 1,
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "suggested": {
+          "description": "What the AI suggested (ordered set; multi-select allowed)",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Suggested",
+          "type": "array"
+        }
+      },
+      "required": [
+        "suggested",
+        "model_id",
+        "prompt_version",
+        "ontology_stamp"
+      ],
+      "title": "Suggestion",
+      "type": "object"
+    }
+  },
+  "$id": "https://gitlab.leadshook.com/leadshook-3.0/dream-insights/-/raw/main/docs/schemas/ledger.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "decision_id": {
+      "description": "Groups decision/outcome/reversal",
+      "minLength": 1,
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "emitted_at": {
+      "format": "date-time",
+      "title": "Emitted At",
+      "type": "string"
+    },
+    "event_id": {
+      "description": "Unique per event (uuid/ulid)",
+      "minLength": 1,
+      "title": "Event Id",
+      "type": "string"
+    },
+    "event_kind": {
+      "$ref": "#/$defs/EventKind"
+    },
+    "exposure": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Exposure"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "extensions": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Extensions"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "mode": {
+      "$ref": "#/$defs/Mode"
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Outcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "product": {
+      "$ref": "#/$defs/Product"
+    },
+    "reversal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Reversal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "ledger.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/Scope"
+    },
+    "subject_kind": {
+      "description": "alias, entity, status, cq_path, routing ...",
+      "pattern": "^[a-z][a-z0-9_.\\-]*$",
+      "title": "Subject Kind",
+      "type": "string"
+    },
+    "subject_ref": {
+      "minLength": 1,
+      "title": "Subject Ref",
+      "type": "string"
+    },
+    "suggestion": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Suggestion"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_kind",
+    "decision_id",
+    "product",
+    "scope",
+    "subject_kind",
+    "subject_ref",
+    "mode",
+    "emitted_at"
+  ],
+  "title": "Decision ledger event (ledger.v1)",
+  "type": "object"
+}

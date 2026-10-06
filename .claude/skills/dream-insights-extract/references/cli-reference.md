@@ -58,6 +58,7 @@ di similar-pathways --channels organic,paid [--limit N]
 di roas --date-from YYYY-MM-DD --date-to YYYY-MM-DD [--model-type linear] [--channel C]
 di campaign-roas --date-from YYYY-MM-DD --date-to YYYY-MM-DD [--platform P]
 di findings [--severity-floor notable] [--limit N] [--ack-status unread]
+di ledger-metrics --date-from YYYY-MM-DD --date-to YYYY-MM-DD [--product dream-insights|weezdom|hermes|cloudflare] [--ontology-version ID] [--field alias]
 ```
 
 Empty collections are success.
