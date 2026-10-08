@@ -1,0 +1,21 @@
+{
+  "example": "bad-double-route.json",
+  "observed": null,
+  "breaks_extraction": [
+    {
+      "code": "alias_routes_to_multiple",
+      "ref": "purchase_completed"
+    },
+    {
+      "code": "relationship_unknown_end",
+      "ref": "lead__order__converts_to:to"
+    }
+  ],
+  "worth_fixing": [
+    {
+      "code": "entity_no_relationship",
+      "ref": "customer"
+    }
+  ],
+  "why": "purchase_completed routes to customer.active and sale.paid; lead -> order points at an entity that does not exist. Publish returns 422."
+}

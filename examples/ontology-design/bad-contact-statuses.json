@@ -1,0 +1,60 @@
+{
+  "name": "Bad: one contact entity with type-like statuses",
+  "description": "Publishes, but answers no funnel or revenue question.",
+  "active_categories": [
+    "marketing",
+    "sales"
+  ],
+  "confidence": "early",
+  "entities": [
+    {
+      "name": "contact",
+      "category": "marketing",
+      "description": "Everyone, from visitor to buyer.",
+      "valid_statuses": [
+        "visitor",
+        "lead",
+        "customer",
+        "refunded"
+      ],
+      "event_status_bindings": [
+        {
+          "event_name": "page_view_landing",
+          "status": "visitor"
+        },
+        {
+          "event_name": "lead_created",
+          "status": "lead",
+          "aliases": [
+            "form_submit"
+          ]
+        },
+        {
+          "event_name": "purchase_completed",
+          "status": "customer"
+        },
+        {
+          "event_name": "refund_issued",
+          "status": "refunded"
+        }
+      ],
+      "attributes": []
+    },
+    {
+      "name": "customer",
+      "category": "sales",
+      "description": "A buyer.",
+      "valid_statuses": [
+        "active"
+      ],
+      "event_status_bindings": [
+        {
+          "event_name": "customer_created",
+          "status": "active"
+        }
+      ],
+      "attributes": []
+    }
+  ],
+  "relationships": []
+}

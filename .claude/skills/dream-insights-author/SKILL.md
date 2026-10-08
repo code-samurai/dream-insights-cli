@@ -13,6 +13,8 @@ compatibility:
 
 # dream-insights-author
 
+Design first: [`dream-insights-ontology-design`](../dream-insights-ontology-design/SKILL.md) covers the owner interview, consumer questions, identity and links, examples, and the check loop. This file covers the push.
+
 Push an `ActivatedOntology` **outside → in**. Same document Discovery stores.
 Path: **draft → publish → materialise**. Materialise stays on publish.
 

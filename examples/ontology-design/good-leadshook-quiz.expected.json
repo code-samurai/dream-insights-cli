@@ -1,0 +1,7 @@
+{
+  "example": "good-leadshook-quiz.json",
+  "observed": null,
+  "breaks_extraction": [],
+  "worth_fixing": [],
+  "why": "Every entity is on a relationship, each producer name has one route, sale.paid is terminal so repeat purchases open new sales, refunds are their own entity."
+}
