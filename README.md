@@ -102,6 +102,8 @@ di author check --property <property-uuid>
 
 Example document: [`examples/activated-ontology.outside-in.yaml`](examples/activated-ontology.outside-in.yaml) (JSON twin beside it).
 
+Design before you push: skill [`dream-insights-ontology-design`](.claude/skills/dream-insights-ontology-design/SKILL.md) covers the owner interview, consumer questions, identity and links, and one good plus two bad worked examples in [`examples/ontology-design/`](examples/ontology-design/).
+
 ## Commands
 
 ### Auth & config
@@ -244,11 +246,13 @@ This repo ships Claude Code skills under:
 ```
 .claude/skills/dream-insights-extract/     # fleet reads
 .claude/skills/dream-insights-author/      # ontology authoring (FOR ME)
+.claude/skills/dream-insights-ontology-design/  # what to model: owner interview, links, examples
 ```
 
 ```text
 https://github.com/code-samurai/dream-insights-cli/tree/main/.claude/skills/dream-insights-extract
 https://github.com/code-samurai/dream-insights-cli/tree/main/.claude/skills/dream-insights-author
+https://github.com/code-samurai/dream-insights-cli/tree/main/.claude/skills/dream-insights-ontology-design
 ```
 
 ## Configuration file

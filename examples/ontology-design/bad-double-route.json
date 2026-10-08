@@ -1,0 +1,227 @@
+{
+  "name": "Bad: one purchase event routed twice, edge to a missing entity",
+  "description": "Publish fails with 422 (two Breaks lines).",
+  "active_categories": [
+    "marketing",
+    "product",
+    "sales",
+    "finance"
+  ],
+  "confidence": "partial",
+  "entities": [
+    {
+      "name": "quiz_session",
+      "category": "product",
+      "description": "One quiz attempt by a visitor.",
+      "valid_statuses": [
+        "started",
+        "answering",
+        "completed"
+      ],
+      "terminal_statuses": [
+        "completed"
+      ],
+      "event_status_bindings": [
+        {
+          "event_name": "quiz_started",
+          "status": "started"
+        },
+        {
+          "event_name": "quiz_answer_submitted",
+          "status": "answering",
+          "aliases": [
+            "question_answered"
+          ]
+        },
+        {
+          "event_name": "quiz_completed",
+          "status": "completed",
+          "aliases": [
+            "quiz_complete"
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "name": "outcome_segment",
+          "data_type": "string",
+          "description": "Result bucket shown at the end of the quiz.",
+          "source_field": "outcome_segment",
+          "is_dimension": true
+        },
+        {
+          "name": "quiz_score",
+          "data_type": "number",
+          "description": "Final quiz score.",
+          "source_field": "quiz_score",
+          "is_dimension": true
+        }
+      ]
+    },
+    {
+      "name": "lead",
+      "category": "marketing",
+      "description": "A person who left contact details.",
+      "valid_statuses": [
+        "new",
+        "qualified",
+        "disqualified"
+      ],
+      "terminal_statuses": [
+        "disqualified"
+      ],
+      "event_status_bindings": [
+        {
+          "event_name": "lead_created",
+          "status": "new",
+          "aliases": [
+            "form_submit",
+            "optin_submitted"
+          ]
+        },
+        {
+          "event_name": "lead_qualified",
+          "status": "qualified"
+        },
+        {
+          "event_name": "lead_disqualified",
+          "status": "disqualified"
+        }
+      ],
+      "attributes": [
+        {
+          "name": "lead_magnet",
+          "data_type": "string",
+          "description": "Offer that captured the lead.",
+          "source_field": "lead_magnet",
+          "is_dimension": true
+        }
+      ]
+    },
+    {
+      "name": "customer",
+      "category": "sales",
+      "description": "A person after their first purchase.",
+      "valid_statuses": [
+        "active",
+        "churned"
+      ],
+      "terminal_statuses": [
+        "churned"
+      ],
+      "event_status_bindings": [
+        {
+          "event_name": "purchase_completed",
+          "status": "active"
+        }
+      ],
+      "attributes": [
+        {
+          "name": "offer_id",
+          "data_type": "string",
+          "description": "Offer on the first purchase (attribute name = event key)."
+        }
+      ]
+    },
+    {
+      "name": "sale",
+      "category": "finance",
+      "description": "One order. A paid or failed sale is closed; the next purchase opens a new sale.",
+      "valid_statuses": [
+        "pending",
+        "paid",
+        "failed"
+      ],
+      "terminal_statuses": [
+        "paid",
+        "failed"
+      ],
+      "event_status_bindings": [
+        {
+          "event_name": "checkout_started",
+          "status": "pending"
+        },
+        {
+          "event_name": "purchase_completed",
+          "status": "paid",
+          "aliases": [
+            "order_paid"
+          ]
+        },
+        {
+          "event_name": "payment_failed",
+          "status": "failed"
+        }
+      ],
+      "attributes": [
+        {
+          "name": "amount",
+          "data_type": "number",
+          "description": "Order value in the property currency.",
+          "source_field": "amount"
+        },
+        {
+          "name": "offer_id",
+          "data_type": "string",
+          "description": "Offer bought.",
+          "source_field": "offer_id",
+          "is_dimension": true
+        }
+      ]
+    },
+    {
+      "name": "refund_given",
+      "category": "finance",
+      "description": "Money returned on a sale. Its own entity so a refund never reopens a closed sale. Not named refund (the universal graph refund requires an amount key) and not sale_refund (publish matches names word by word, so sale_refund collides with sale).",
+      "valid_statuses": [
+        "issued"
+      ],
+      "terminal_statuses": [
+        "issued"
+      ],
+      "event_status_bindings": [
+        {
+          "event_name": "refund_issued",
+          "status": "issued"
+        }
+      ],
+      "attributes": [
+        {
+          "name": "refund_amount",
+          "data_type": "number",
+          "description": "Refunded value.",
+          "source_field": "refund_amount"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from_entity": "quiz_session",
+      "to_entity": "lead",
+      "transition_type": "produces",
+      "cardinality": "N:1",
+      "description": "A quiz attempt produces the lead."
+    },
+    {
+      "from_entity": "lead",
+      "to_entity": "order",
+      "transition_type": "converts_to",
+      "description": "Points at an entity that does not exist."
+    },
+    {
+      "from_entity": "lead",
+      "to_entity": "sale",
+      "transition_type": "has_many",
+      "cardinality": "1:N",
+      "description": "Each order by the person. Linked from lead because the lead always exists before checkout; customer_created arrives after the first payment."
+    },
+    {
+      "from_entity": "sale",
+      "to_entity": "refund_given",
+      "transition_type": "triggers",
+      "cardinality": "1:N",
+      "description": "A refund on a sale."
+    }
+  ]
+}

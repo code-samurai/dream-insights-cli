@@ -1,0 +1,20 @@
+{
+  "example": "bad-contact-statuses.json",
+  "observed": null,
+  "breaks_extraction": [],
+  "worth_fixing": [
+    {
+      "code": "entity_kind_as_status",
+      "ref": "contact.customer"
+    },
+    {
+      "code": "entity_no_relationship",
+      "ref": "contact"
+    },
+    {
+      "code": "entity_no_relationship",
+      "ref": "customer"
+    }
+  ],
+  "why": "Entity kinds stored as statuses of one contact; no edges; no sale amount. Publishes (no Breaks) but cannot answer revenue, time-to-purchase or source-to-revenue."
+}
