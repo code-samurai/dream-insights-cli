@@ -145,6 +145,67 @@ class DreamInsightsClient:
             return {"status": resp.text}
 
 
+def _json_body(resp: httpx.Response) -> dict | None:
+    if not resp.headers.get("content-type", "").startswith("application/json"):
+        return None
+    try:
+        body = resp.json()
+    except ValueError:
+        return None
+    return body if isinstance(body, dict) else None
+
+
+def _sentence(text: Any) -> str:
+    clause = " ".join(str(text or "").split()).rstrip(" .")
+    return f"{clause}." if clause else ""
+
+
+def failure_text(resp: httpx.Response) -> str | None:
+    """Owner text for a refused or failed request, or None when the body has none.
+
+    Dream Insights failures carry ``detail`` (one plain sentence) and, for
+    publish and quality refusals, ``wrong``/``why``/``next``/``fix`` plus
+    ``details``, ``stale``, ``action`` and ``draft_ontology_id``. The sentence
+    comes first; the next step and where to do it follow; the store detail
+    (vendor words) stays last, under "Details:".
+    """
+    body = _json_body(resp)
+    if body is None:
+        return None
+    detail = body.get("detail")
+    if isinstance(detail, list):
+        # Request validation: one line per field, no internal pydantic noise.
+        parts = []
+        for item in detail[:5]:
+            if isinstance(item, dict):
+                loc = ".".join(str(x) for x in item.get("loc", []) if x not in ("body", "query", "path"))
+                parts.append(f"{loc}: {item.get('msg')}" if loc else str(item.get("msg")))
+        return "; ".join(parts) or None
+    head = body.get("message") if isinstance(body.get("message"), str) and body.get("message") else detail
+    lines = [str(head)] if head else []
+    nxt = body.get("next")
+    if nxt and (not head or _sentence(nxt).rstrip(".") not in str(head)):
+        lines.append(f"Next: {_sentence(nxt)}")
+    fix = body.get("fix")
+    if isinstance(fix, dict) and fix.get("kind"):
+        target = f" {fix['target']}" if fix.get("target") else ""
+        lines.append(f"Fix: {fix['kind']}{target}")
+    action = body.get("action")
+    draft = body.get("draft_ontology_id")
+    if action in ("open_draft", "open_wizard") and draft:
+        lines.append(f"Draft: {draft} (make the next changes there, then publish)")
+    elif action == "start_draft":
+        lines.append("Draft: none yet (write one with `di author draft`, then publish)")
+    elif action == "retry" or body.get("retry") is True:
+        lines.append("Retry: run `di author publish` again")
+    if body.get("stale") is True:
+        lines.append("Stale: a newer publish replaced this one, so there is nothing to retry")
+    details = body.get("details")
+    if details:
+        lines.append(f"Details: {details}")
+    return "\n".join(lines) or None
+
+
 def _safe_detail(resp: httpx.Response) -> str | None:
     ctype = resp.headers.get("content-type", "")
     if not ctype.startswith("application/json"):

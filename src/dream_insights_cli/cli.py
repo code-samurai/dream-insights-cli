@@ -642,6 +642,24 @@ def _author_shared(fn):
     return fn
 
 
+def _expected_updated_at_option(fn):
+    return click.option(
+        "--expected-updated-at",
+        default=None,
+        help=(
+            "The draft's updated_at when you read it. The server refuses (409) "
+            "if the draft changed since, instead of overwriting it."
+        ),
+    )(fn)
+
+
+def _emit_notice(data) -> None:
+    """The server's one-sentence notice (e.g. questions added from the file), on stderr."""
+    notice = data.get("notice") if isinstance(data, dict) else None
+    if notice:
+        click.echo(notice, err=True)
+
+
 @main.group("author")
 def author_group():
     """Import, draft-write, and publish an ontology (FOR ME authoring path).
@@ -657,8 +675,9 @@ def author_group():
 @click.option("--property-id", type=click.UUID, required=True, help=f"Property UUID. Example: {_PLACEHOLDER_PROPERTY}")
 @click.option("--ontology-id", type=click.UUID, required=True, help="Opened ontology version UUID.")
 @click.option("--file", "document_path", required=True, type=click.Path(exists=True, dir_okay=False))
+@_expected_updated_at_option
 @click.pass_context
-def author_import_cmd(ctx, auth, api_key, property_id, ontology_id, document_path):
+def author_import_cmd(ctx, auth, api_key, property_id, ontology_id, document_path, expected_updated_at):
     """Import an ActivatedOntology onto the draft. Does not publish.
 
     MCP peer: import_ontology. Requires an existing ontology version id.
@@ -670,10 +689,11 @@ def author_import_cmd(ctx, auth, api_key, property_id, ontology_id, document_pat
     document = load_authoring_document(document_path)
     try:
         data = AuthoringClient(api_key=api_key, auth=auth).import_ontology(
-            property_id, ontology_id, document
+            property_id, ontology_id, document, expected_updated_at=expected_updated_at
         )
     except ClickExit as e:
         _emit_error(e)
+    _emit_notice(data)
     format_output(data, _get_format(ctx))
 
 
@@ -681,8 +701,9 @@ def author_import_cmd(ctx, auth, api_key, property_id, ontology_id, document_pat
 @_author_shared
 @click.option("--property-id", type=click.UUID, required=True, help=f"Property UUID. Example: {_PLACEHOLDER_PROPERTY}")
 @click.option("--file", "document_path", required=True, type=click.Path(exists=True, dir_okay=False))
+@_expected_updated_at_option
 @click.pass_context
-def author_draft_cmd(ctx, auth, api_key, property_id, document_path):
+def author_draft_cmd(ctx, auth, api_key, property_id, document_path, expected_updated_at):
     """Full-replace the property draft (creates it when missing). Does not publish.
 
     MCP peer: write_ontology.
@@ -692,9 +713,12 @@ def author_draft_cmd(ctx, auth, api_key, property_id, document_path):
 
     document = load_authoring_document(document_path)
     try:
-        data = AuthoringClient(api_key=api_key, auth=auth).write_ontology(property_id, document)
+        data = AuthoringClient(api_key=api_key, auth=auth).write_ontology(
+            property_id, document, expected_updated_at=expected_updated_at
+        )
     except ClickExit as e:
         _emit_error(e)
+    _emit_notice(data)
     format_output(data, _get_format(ctx))
 
 
@@ -775,15 +799,19 @@ def author_cq_list_cmd(ctx, auth, api_key, property_id):
 @author_cq_group.command("write")
 @_author_shared
 @click.option("--property-id", "--property", "property_id", type=click.UUID, required=True)
-@click.option("--text", required=True, help="Question the owner wrote.")
-@click.option("--critical", is_flag=True, default=False)
+@click.option("--text", default=None, help="Question the owner wrote. Required for a new question.")
+@click.option(
+    "--critical/--not-critical",
+    default=None,
+    help="Mark (or unmark) as a key question. Omit to keep the current value on a revision.",
+)
 @click.option("--entity", "entity_name", default=None)
 @click.option("--status", "status_name", default=None)
 @click.option("--dimension", "dimension_name", default=None)
 @click.option("--dimension-value", default=None)
 @click.option("--time-window", default=None)
 @click.option("--relationship", "relationship_key", default=None)
-@click.option("--question-id", type=click.UUID, default=None)
+@click.option("--question-id", type=click.UUID, default=None, help="Revise this question.")
 @click.pass_context
 def author_cq_write_cmd(
     ctx,
@@ -802,12 +830,15 @@ def author_cq_write_cmd(
 ):
     """Create a question or append a revision. Does not confirm it.
 
-    MCP peer: write_competency_question.
+    A revision (--question-id) sends only the fields you pass; the server keeps
+    the rest. Pass "" to clear a path field. MCP peer: write_competency_question.
     """
     from dream_insights_cli.authoring import AuthoringClient
     from dream_insights_cli.client import ClickExit
 
-    body = {
+    if question_id is None and not text:
+        _emit_error(ClickExit("--text is required for a new question (or pass --question-id to revise one)."))
+    fields = {
         "text": text,
         "critical": critical,
         "entity_name": entity_name,
@@ -817,8 +848,13 @@ def author_cq_write_cmd(
         "time_window": time_window,
         "relationship_key": relationship_key,
     }
+    # Only what was given: an omitted field (None) is never sent, so a revision
+    # can't clear the key flag or a path by accident.
+    body = {name: value for name, value in fields.items() if value is not None}
     if question_id is not None:
         body["question_id"] = str(question_id)
+        if len(body) == 1:
+            _emit_error(ClickExit("Nothing to revise: pass at least one field to change."))
     try:
         data = AuthoringClient(api_key=api_key, auth=auth).write_competency_question(
             property_id, body

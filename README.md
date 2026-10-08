@@ -168,6 +168,18 @@ di author cq confirm --property <property-uuid> --question-id <question-uuid>
 
 `di author check` returns `breaks_extraction`, `worth_fixing`, `questions`, and `schema_diff`. It does not write and it has no grade. Worth-fixing findings do not fail publish.
 
+Revising a question (`--question-id`) sends only the fields you pass; the server keeps the rest. Use `--critical` / `--not-critical` to change the key-question flag, and `""` to clear a path field:
+
+```bash
+di author cq write --property <property-uuid> --question-id <question-uuid> --status paid
+```
+
+**Safe saves.** `di author draft` and `di author import` take `--expected-updated-at <draft updated_at>`. If someone saved the draft after you read it, the server refuses with 409 ("This draft changed after you opened it…") instead of overwriting their work. Without the flag, saves behave as before.
+
+**Questions in a file.** A `questions` (or `competency_questions`) list next to the ontology in an import file is added to Quality; the response `notice` (printed on stderr) says how many.
+
+**Failures.** Refusals print the server's plain sentence first, then `Next:`, `Fix: <kind> <target>`, the draft to work in (`Draft:`), whether to retry, and store detail last under `Details:`. A 422 is a refusal with a reason (for example a name clash: `Fix: rename_entity step_2`), not an "API error".
+
 CLI ↔ MCP verbs:
 
 | CLI | MCP tool |
