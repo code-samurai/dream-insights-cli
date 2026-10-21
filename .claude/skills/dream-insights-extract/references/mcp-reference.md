@@ -3,7 +3,7 @@
 **Endpoint:** `https://t.leadshook.com/mcp/fleet/` (trailing slash)
 **Auth:** `X-API-Key: <MACHINE_READER_API_KEY>`
 **Transport:** Streamable HTTP; JSON responses
-**Key class:** Machine reader (**FOR AGENT**) only — personal `di_user_` keys are refused
+**Key class:** Machine reader (**Agent & tool key**) only — personal `di_user_` keys are refused
 
 Ontology authoring is a **different** MCP: `https://t.leadshook.com/mcp/author/`
 (see skill `dream-insights-author`). Fleet MCP does not register
@@ -42,10 +42,10 @@ Env:
 | `get_ontology` | Live ontology for `property_id` |
 | `list_events` | Paginated events (`limit`, `offset`, `event_name`, `page_domain`) |
 | `get_event` | One event (`event_id`) with properties + context |
-| `list_entities` | Instances of `entity_type` |
+| `list_entities` | Instances of `entity_type` (any type in the property's live ontology, e.g. `sale`, or the universal catalogue) |
 | `get_entity` | One instance (`entity_type`, `entity_id`) |
 | `get_person_timeline` | Timeline for `person_id` |
-| `list_transitions` | Transitions (`person_id`, `from_type`, `to_type`) |
+| `list_transitions` | Transitions (`person_id`, `from_type`, `to_type`, `source`, `campaign_id`, `channel`, `include_to_entity`). Rows carry `person_id`, `source`, `campaign_id`, `channel` from the entering instance; `include_to_entity` adds the target's `to_status`, `to_attributes`, `to_attributes_numeric` |
 
 ## Query helpers
 

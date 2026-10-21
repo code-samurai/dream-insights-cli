@@ -7,7 +7,7 @@ Two surfaces, same Connect-apps key model as Discovery:
 | Surface | What it does | Key class | Endpoint |
 |---------|--------------|-----------|----------|
 | **Fleet reads** | Live ontology, events, entities, timelines, semantic neighbors | Personal `di_user_…` **or** machine reader | HTTP + `/mcp/fleet/` |
-| **Ontology authoring** | Import / draft / publish an `ActivatedOntology` from outside Discovery | **FOR ME** personal `di_user_…` (or admin) | HTTP `/authoring/…` + `/mcp/author/` |
+| **Ontology authoring** | Import / draft / publish an `ActivatedOntology` from outside Discovery | **Your key** (personal) `di_user_…` (or admin) | HTTP `/authoring/…` + `/mcp/author/` |
 
 Dream Insights returns **data**. **You** (or your agent) build the insight. No free-form SQL. No narrative minting. Fleet MCP and machine readers stay **read-only** — they cannot author.
 
@@ -37,17 +37,17 @@ cd dream-insights-cli
 pip install -e ".[dev]"
 ```
 
-## FOR ME vs FOR AGENT keys
+## Your key vs Agent & tool keys
 
-Mint keys in **Discovery Settings → Connect apps**.
+Mint keys in **Discovery Settings → Connect apps**: **Your key** acts as you; **Agent & tool keys** are one key per bot or app, for one business (Read only, or Read and write to also send events). Agent & tool keys cannot author.
 
 | Audience | Key | Where to use |
 |----------|-----|--------------|
-| **FOR ME** | Personal `di_user_…` | Your laptop CLI, personal scripts, Cloud Code / Desktop as *you*, **ontology authoring** (`/mcp/author/`, `di author …`) |
-| **FOR AGENT** | Machine reader | Hermes, Cursor/Claude skills for **reads**, fleet bots, **fleet MCP** (`/mcp/fleet/`) |
+| **Your key** | Personal `di_user_…` | Your laptop CLI, personal scripts, Cloud Code / Desktop as *you*, **ontology authoring** (`/mcp/author/`, `di author …`) |
+| **Agent & tool key** | Machine reader | Hermes, Cursor/Claude skills for **reads**, fleet bots, **fleet MCP** (`/mcp/fleet/`) |
 
 - Fleet MCP (`/mcp/fleet/`) **refuses** personal `di_user_` keys — use a machine reader.
-- Authoring MCP (`/mcp/author/`) **refuses** fleet / machine-reader keys — use a FOR ME personal key.
+- Authoring MCP (`/mcp/author/`) **refuses** fleet / machine-reader keys — use a personal key (Your key).
 - Authoring tools (`import_ontology`, `write_ontology`, `publish_ontology`, `check_ontology`, `list_competency_questions`, `write_competency_question`, `confirm_competency_question`) are **not** registered on fleet MCP.
 - This CLI accepts either key class for **fleet HTTP reads**. Authoring commands refuse `di_fleet_…` keys and do not read `DREAM_INSIGHTS_FLEET_API_KEY`.
 - Never commit keys. Never put a personal key in a shared agent runtime. See [SECURITY.md](SECURITY.md).
@@ -56,7 +56,7 @@ Mint keys in **Discovery Settings → Connect apps**.
 
 ```bash
 di auth login
-# paste di_user_… (FOR ME) or a machine reader (FOR AGENT)
+# paste di_user_… (Your key) or a machine reader (Agent & tool key)
 # stored at ~/.dream-insights/config.yaml (mode 0600)
 
 di config set default_property_id <property-uuid>
@@ -68,7 +68,7 @@ di semantic --collection EntityProfile --query "quiz lead"
 
 All query commands default to `--format json` (agent-friendly). Use `--format table` for humans.
 
-## Quick start — ontology authoring (FOR ME)
+## Quick start — ontology authoring (Your key)
 
 Build an `ActivatedOntology` outside Discovery, then push: **draft → publish → materialise**. Materialise stays on publish (no separate CLI step).
 
@@ -131,8 +131,10 @@ di event --property-id <property-uuid> --event-id <event-uuid>
 di entities --property-id <property-uuid> --entity-type lead [--status STATUS]
 di entity --property-id <property-uuid> --entity-type lead --entity-id <entity-uuid>
 di timeline --property-id <property-uuid> --person-id <person-uuid>
-di transitions --property-id <property-uuid>
+di transitions --property-id <property-uuid> [--from-type lead] [--to-type sale] [--source S] [--campaign-id C] [--channel CH] [--include-to-entity]
 ```
+
+`--entity-type` accepts any type in the property's live ontology (for example `sale`). Transition rows carry `person_id`, `source`, `campaign_id` and `channel` from the entering instance, so a lead → sale row carries the lead's source. `--include-to-entity` adds the target's status and attributes (for example the sale amount). Revenue by source or per campaign: read `lead → sale` transitions with `--include-to-entity` and sum the amount yourself; Dream Insights does not aggregate.
 
 ### Query helpers
 
@@ -195,7 +197,7 @@ CLI ↔ MCP verbs:
 
 ## Claude Code / Cursor — MCP JSON placeholders
 
-### Fleet (FOR AGENT — reads only)
+### Fleet (Agent & tool keys — reads only)
 
 ```bash
 di mcp-config --client claude-code --surface fleet
@@ -215,7 +217,7 @@ di mcp-config --client cursor --surface fleet
 }
 ```
 
-### Authoring (FOR ME — writes)
+### Authoring (Your key — writes)
 
 ```bash
 di mcp-config --client claude-code --surface author
@@ -257,7 +259,7 @@ This repo ships Claude Code skills under:
 
 ```
 .claude/skills/dream-insights-extract/     # fleet reads
-.claude/skills/dream-insights-author/      # ontology authoring (FOR ME)
+.claude/skills/dream-insights-author/      # ontology authoring (Your key)
 .claude/skills/dream-insights-ontology-design/  # what to model: owner interview, links, examples
 ```
 

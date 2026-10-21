@@ -4,7 +4,7 @@
 **Config:** `~/.dream-insights/config.yaml` (mode 0600)
 **Host:** `https://t.leadshook.com`
 **Auth (reads):** `X-API-Key` (personal `di_user_…` or machine reader)
-**Auth (authoring):** `Authorization: Bearer` or `X-API-Key` (FOR ME personal key; see `di author`)
+**Auth (authoring):** `Authorization: Bearer` or `X-API-Key` (personal key (Your key); see `di author`)
 **Output:** `json` (default), `table`, `text`
 
 ---
@@ -36,8 +36,14 @@ di event --event-id UUID [--property-id UUID]
 di entities --entity-type TYPE [--property-id UUID] [--person-id UUID] [--status S] [--limit N]
 di entity --entity-type TYPE --entity-id UUID [--property-id UUID]
 di timeline --person-id UUID [--property-id UUID]
-di transitions [--property-id UUID] [--person-id UUID] [--from-type T] [--to-type T] [--limit N]
+di transitions [--property-id UUID] [--person-id UUID] [--from-type T] [--to-type T]
+               [--source S] [--campaign-id C] [--channel CH] [--include-to-entity] [--limit N]
 ```
+
+`--entity-type` accepts any type in the property's live ontology (for example `sale`) or the universal catalogue.
+Transition rows carry `person_id`, `source`, `campaign_id` and `channel` from the entering instance.
+`--include-to-entity` adds the target's `to_status`, `to_attributes` and `to_attributes_numeric`.
+Revenue by source: `di transitions --from-type lead --to-type sale --include-to-entity`, then sum the sale amount yourself.
 
 ---
 
@@ -65,7 +71,7 @@ Empty collections are success.
 
 ---
 
-## Ontology authoring (FOR ME)
+## Ontology authoring (Your key)
 
 ```bash
 di author draft --property-id UUID --file path/to/ontology.yaml|json

@@ -176,7 +176,7 @@
     {
       "name": "refund_given",
       "category": "finance",
-      "description": "Money returned on a sale. Its own entity so a refund never reopens a closed sale. Not named refund (the universal graph refund requires an amount key) and not sale_refund (publish matches names word by word, so sale_refund collides with sale).",
+      "description": "Money returned on a sale. Its own entity so a refund never reopens a closed sale. Not named refund (the universal graph refund requires an amount key). sale_refund would also publish; refund_given just reads better.",
       "valid_statuses": [
         "issued"
       ],

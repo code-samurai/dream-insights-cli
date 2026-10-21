@@ -1,4 +1,4 @@
-# CLI Reference — di author (FOR ME)
+# CLI Reference — di author (Your key)
 
 **Host:** `https://t.leadshook.com`
 **Credential:** `DREAM_INSIGHTS_AUTHORING_API_KEY` (preferred) or stored personal key from `di auth login`

@@ -19,7 +19,7 @@ def test_auth_login_stores_personal_key(tmp_path, monkeypatch):
     runner = CliRunner()
     result = runner.invoke(main, ["auth", "login"], input="di_user_fake_placeholder\n")
     assert result.exit_code == 0, result.output
-    assert "personal" in result.output.lower() or "FOR ME" in result.output
+    assert "personal" in result.output.lower() or "Your key" in result.output
     assert config_file.exists()
     assert oct(config_file.stat().st_mode)[-3:] == "600"
     assert "di_user_fake_placeholder" in config_file.read_text()

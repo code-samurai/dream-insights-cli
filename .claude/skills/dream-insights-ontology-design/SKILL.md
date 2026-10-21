@@ -119,9 +119,9 @@ Report: Breaks N · Worth fixing N · questions answerable / partial / not yet �
 
 ### Platform codes this skill names
 
-Blocking: `relationship_unknown_end`, `duplicate_relationship_key`, `alias_routes_to_multiple`, `duplicate_producer_name`, `binding_status_unknown`, `terminal_status_unknown`.
+Blocking: `relationship_unknown_end`, `duplicate_relationship_key`, `alias_routes_to_multiple`, `duplicate_producer_name`, `binding_status_unknown`, `terminal_status_unknown`, `entity_name_collision`.
 
-Warning: `entity_kind_as_status`, `entity_no_relationship`, `alias_case_or_punctuation`, `status_unobserved`, `dimension_missing_source`, `critical_question_regressed`.
+Warning: `entity_kind_as_status`, `entity_no_relationship`, `alias_case_or_punctuation`, `status_unobserved`, `dimension_missing_source`, `critical_question_regressed`, `critical_question_not_answerable`.
 
 ### Events must be bound before they are sent
 
@@ -134,7 +134,7 @@ Ingest rejects an event name that is not bound on the **live** version (422 `unb
 ### Names: check them before you write
 
 - **Universal-graph names.** If an object has the same name as one in the Dream Insights universal graph (for example `lead`, `quiz`, `order`, `refund`), DI merges the two. The universal fields come first, and its required fields apply: an event without that key is skipped (`required_attribute`). For example, `refund` requires an `amount` key on the refund event. Either send that key or choose a name that is not in the catalog.
-- **No name that is another name plus a suffix.** Publish checks its search store by object name word by word (`_` splits words). So `sale` and `sale_refund` (or `order` and `order_item`) in one document fail publish after the stores are written, with an error like "sale type uuid count 2 != 1". Pick names that share no whole word with another object's name, such as `sale` and `refund_given`.
+- **No two names that become the same store name.** Each object is stored under its name in PascalCase. Two names that only differ by an underscore before a digit, such as `step_2` and `step2`, both become `Step2`. The quality check and publish flag that as the blocking `entity_name_collision`, before anything is written. A name that is another name plus a suffix, such as `sale` and `sale_refund`, is fine: publish verify matches whole names.
 
 ### Identity and join keys (the most common reason records don't link)
 
@@ -175,7 +175,7 @@ Ingest rejects an event name that is not bound on the **live** version (422 `unb
 
 Today a question path holds one relationship, so a question that spans several steps needs one competency question per step.
 
-What the fleet extract can return today (October 2026): a person's timeline lists their objects, statuses and links. The entity list only accepts types from the universal graph, so `entities/sale` answers 404. Listed transitions carry no `person_id`, `source` or `campaign_id`. For money by source, check the answer against raw events too, and report the gap rather than reshaping the model to work around it. Fleet reads use skill [`dream-insights-extract`](../dream-insights-extract/SKILL.md).
+What the fleet extract can return today (October 2026): a person's timeline lists their objects, statuses and links. The entity list accepts any type in the property's live ontology (for example `entities/sale`) as well as the universal graph. Listed transitions carry `person_id`, `source`, `campaign_id` and `channel` from the entering instance, so a lead→sale row carries the lead's source. Revenue by source or per campaign is one paged read of `transitions` with `from_type=lead`, `to_type=sale` and `include_to_entity=true` (`di transitions --from-type lead --to-type sale --include-to-entity`), summed by you over the sale amount in `to_attributes_numeric`. Dream Insights does not aggregate. If the answer looks wrong, check it against raw events and report the gap rather than reshaping the model to work around it. Fleet reads use skill [`dream-insights-extract`](../dream-insights-extract/SKILL.md).
 
 ### Worked good example — LeadsHook quiz funnel
 
@@ -187,7 +187,7 @@ Objects:
 - `lead`: new, qualified, disqualified. Aliases `form_submit` and `optin_submitted`.
 - `customer`: active, churned. Field `offer_id`.
 - `sale`: pending, paid (terminal), failed (terminal). Fields `amount` and `offer_id`.
-- `refund_given`: issued. Not `refund` (universal name; it requires an `amount` key) and not `sale_refund` (shares the word `sale`).
+- `refund_given`: issued. Not `refund` (universal name; it requires an `amount` key). `sale_refund` would also publish; `refund_given` just reads better.
 
 Links: quiz_session→lead `produces`, lead→customer `converts_to`, lead→sale `has_many`, sale→refund_given `triggers`.
 

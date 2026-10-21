@@ -1,4 +1,4 @@
-"""Outside-in ontology authoring (FOR ME) — peer of /mcp/author/.
+"""Outside-in ontology authoring (Your key) — peer of /mcp/author/.
 
 Fleet MCP (/mcp/fleet/) and machine readers stay read-only. Authoring uses a
 personal Connect-apps key (di_user_…) or an operator admin key via env.
@@ -153,7 +153,7 @@ class AuthoringClient:
         if resp.status_code == 401:
             raise click_exit("Not authenticated. Check DREAM_INSIGHTS_AUTHORING_API_KEY / di auth login")
         if resp.status_code == 403:
-            raise click_exit(_safe_detail(resp) or "Access denied. Authoring needs a FOR ME personal key (or admin).")
+            raise click_exit(_safe_detail(resp) or "Access denied. Authoring needs a personal key (Your key) (or admin).")
         if resp.status_code == 404:
             raise click_exit(_safe_detail(resp) or f"Not found: {resp.url.path}")
         if resp.status_code == 409:
