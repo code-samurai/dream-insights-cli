@@ -133,6 +133,36 @@ class TestTimelineTransitions:
         assert result.exit_code == 0
         assert json.loads(result.output)["items"] == []
 
+    def test_transitions_source_campaign_filters(self, mock_config):
+        payload = {"items": [{"from_type": "lead", "to_type": "sale", "source": "google",
+                              "campaign_id": "spring", "channel": "paid",
+                              "to_attributes_numeric": {"amount": 49.0}}]}
+        with respx.mock(base_url=API_URL) as rsps:
+            route = rsps.get(f"/api/v1/properties/{PROPERTY_ID}/transitions").mock(
+                return_value=httpx.Response(200, json=payload)
+            )
+            result = CliRunner().invoke(main, [
+                "transitions", "--from-type", "lead", "--to-type", "sale", "--source", "google",
+                "--campaign-id", "spring", "--channel", "paid", "--include-to-entity"])
+        assert result.exit_code == 0, result.output
+        params = dict(route.calls[0].request.url.params)
+        assert params["source"] == "google"
+        assert params["campaign_id"] == "spring"
+        assert params["channel"] == "paid"
+        assert params["include_to_entity"] == "true"
+        assert json.loads(result.output)["items"][0]["source"] == "google"
+
+    def test_transitions_omits_unset_filters(self, mock_config):
+        with respx.mock(base_url=API_URL) as rsps:
+            route = rsps.get(f"/api/v1/properties/{PROPERTY_ID}/transitions").mock(
+                return_value=httpx.Response(200, json={"items": []})
+            )
+            result = CliRunner().invoke(main, ["transitions"])
+        assert result.exit_code == 0, result.output
+        params = dict(route.calls[0].request.url.params)
+        for key in ("source", "campaign_id", "channel", "include_to_entity"):
+            assert key not in params
+
 
 class TestErrors:
     def test_403_surfaces_detail(self, mock_config):

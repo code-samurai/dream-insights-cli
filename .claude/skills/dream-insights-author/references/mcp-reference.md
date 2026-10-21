@@ -1,8 +1,8 @@
-# MCP Reference — authoring MCP (FOR ME)
+# MCP Reference — authoring MCP (Your key)
 
 **Endpoint:** `https://t.leadshook.com/mcp/author/` (trailing slash)
 **Auth:** `Authorization: Bearer di_user_YOUR_PERSONAL_KEY` or `X-API-Key: di_user_YOUR_PERSONAL_KEY`
-**Key class:** Personal (**FOR ME**) or admin — fleet / machine readers are refused
+**Key class:** Personal (**Your key**) or admin — fleet / machine readers are refused
 
 Fleet MCP (`/mcp/fleet/`) does **not** expose these tools.
 

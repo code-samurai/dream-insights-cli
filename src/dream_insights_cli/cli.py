@@ -1,4 +1,4 @@
-"""Main CLI entry point — fleet reads + FOR ME ontology authoring."""
+"""Main CLI entry point — fleet reads + personal-key ontology authoring."""
 
 from __future__ import annotations
 
@@ -118,10 +118,10 @@ def _property_option(required: bool = False):
 )
 @click.pass_context
 def main(ctx, output_format):
-    """Dream Insights CLI — fleet reads and FOR ME ontology authoring.
+    """Dream Insights CLI — fleet reads and personal-key ontology authoring.
 
     Fleet reads: personal key (di_user_…) or machine reader · X-API-Key
-    Authoring: personal FOR ME key (or admin via env) · /mcp/author/ peer
+    Authoring: personal key (Your key) (or admin via env) · /mcp/author/ peer
     Host: https://t.leadshook.com
     """
     ctx.ensure_object(dict)
@@ -143,7 +143,7 @@ def auth():
 def auth_login():
     """Store an API key in ~/.dream-insights/config.yaml (mode 0600).
 
-    Accepts a personal key (di_user_…) or a machine reader (FOR AGENT).
+    Accepts a personal key (di_user_…) or a machine reader (Agent & tool key).
     """
     from dream_insights_cli import config
 
@@ -159,7 +159,7 @@ def auth_login():
         sys.exit(1)
 
     config.set_value("api_key", api_key)
-    kind = "personal (FOR ME)" if api_key.startswith("di_user_") else "machine reader (FOR AGENT)"
+    kind = "personal (Your key)" if api_key.startswith("di_user_") else "machine reader (Agent & tool key)"
     click.echo(f"Stored {kind} key in {config.CONFIG_FILE} (0600).")
     click.echo("Tip: set a default property with: di config set default_property_id <uuid>")
 
@@ -266,13 +266,13 @@ def health_cmd(ctx):
     type=click.Choice(["fleet", "author"]),
     default="fleet",
     show_default=True,
-    help="fleet = read-only machine reader; author = FOR ME ontology writes.",
+    help="fleet = read-only machine reader; author = personal-key ontology writes.",
 )
 def mcp_config_cmd(client: str, surface: str):
     """Print paste-ready MCP JSON placeholders.
 
-    Fleet MCP (/mcp/fleet/) requires a machine reader (FOR AGENT).
-    Authoring MCP (/mcp/author/) requires a personal FOR ME key (di_user_…).
+    Fleet MCP (/mcp/fleet/) requires a machine reader (Agent & tool key).
+    Authoring MCP (/mcp/author/) requires a personal key (Your key) (di_user_…).
     Fleet keys cannot author. Authoring tools are not on fleet MCP.
     """
     import json
@@ -283,7 +283,7 @@ def mcp_config_cmd(client: str, surface: str):
         # X-API-Key is also accepted; Bearer matches the authoring CLI default.
         server_name = "dream-insights-authoring"
         note = (
-            "\n# Authoring MCP: personal FOR ME key (di_user_…). "
+            "\n# Authoring MCP: personal key (Your key) (di_user_…). "
             "Trailing slash required. Fleet/machine-reader keys are refused."
         )
         label = "authoring"
@@ -292,7 +292,7 @@ def mcp_config_cmd(client: str, surface: str):
         headers = {"X-API-Key": "<MACHINE_READER_API_KEY>"}
         server_name = "dream-insights"
         note = (
-            "\n# Fleet MCP: machine reader (FOR AGENT). "
+            "\n# Fleet MCP: machine reader (Agent & tool key). "
             "Personal di_user_ keys are refused. Cannot author ontologies."
         )
         label = "fleet"
@@ -369,7 +369,12 @@ def event_cmd(ctx, property_id, event_id):
 
 @main.command("entities")
 @_property_option()
-@click.option("--entity-type", required=True, callback=_required_text, help="Entity type, e.g. lead.")
+@click.option(
+    "--entity-type",
+    required=True,
+    callback=_required_text,
+    help="Entity type: any type in the property's live ontology (e.g. sale) or the universal catalogue (e.g. lead).",
+)
 @click.option("--person-id", type=click.UUID, default=None)
 @click.option("--status", default=None, callback=_optional_text)
 @click.option("--limit", type=click.IntRange(1, 500), default=50, show_default=True)
@@ -423,11 +428,28 @@ def timeline_cmd(ctx, property_id, person_id):
 @click.option("--person-id", type=click.UUID, default=None)
 @click.option("--from-type", default=None, callback=_optional_text)
 @click.option("--to-type", default=None, callback=_optional_text)
+@click.option("--source", default=None, callback=_optional_text, help="Optional utm_source filter.")
+@click.option("--campaign-id", default=None, callback=_optional_text, help="Optional utm_campaign filter.")
+@click.option("--channel", default=None, callback=_optional_text, help="Optional channel filter.")
+@click.option(
+    "--include-to-entity",
+    is_flag=True,
+    default=False,
+    help="Add the target instance's status and attributes (for example a sale amount).",
+)
 @click.option("--limit", type=click.IntRange(1, 500), default=50, show_default=True)
 @click.option("--offset", type=click.IntRange(min=0), default=0, show_default=True)
 @click.pass_context
-def transitions_cmd(ctx, property_id, person_id, from_type, to_type, limit, offset):
-    """Entity transitions for one property. Empty items is success."""
+def transitions_cmd(
+    ctx, property_id, person_id, from_type, to_type, source, campaign_id, channel, include_to_entity, limit, offset
+):
+    """Entity transitions for one property. Empty items is success.
+
+    Rows carry person_id, source, campaign_id and channel from the entering
+    instance, so a lead -> sale row carries the lead's source and campaign.
+    With --include-to-entity the target's to_status, to_attributes and
+    to_attributes_numeric ride along. You sum; Dream Insights does not aggregate.
+    """
     _run_read(
         ctx,
         "transitions",
@@ -435,6 +457,10 @@ def transitions_cmd(ctx, property_id, person_id, from_type, to_type, limit, offs
         person_id=person_id,
         from_type=from_type,
         to_type=to_type,
+        source=source,
+        campaign_id=campaign_id,
+        channel=channel,
+        include_to_entity="true" if include_to_entity else None,
         limit=limit,
         offset=offset,
     )
@@ -619,7 +645,7 @@ def ledger_metrics_cmd(ctx, property_id, date_from, date_to, product, ontology_v
 
 
 # ---------------------------------------------------------------------------
-# Ontology authoring (FOR ME) — peer of /mcp/author/
+# Ontology authoring (Your key) — peer of /mcp/author/
 # ---------------------------------------------------------------------------
 
 
@@ -662,10 +688,10 @@ def _emit_notice(data) -> None:
 
 @main.group("author")
 def author_group():
-    """Import, draft-write, and publish an ontology (FOR ME authoring path).
+    """Import, draft-write, and publish an ontology (personal-key authoring path).
 
     Peer of https://t.leadshook.com/mcp/author/. Uses a personal Connect-apps
-    key (Settings → Connect apps → FOR ME). Machine readers stay on fleet reads.
+    key (Settings → Connect apps → Your key). Machine readers stay on fleet reads.
     Materialise runs after publish — not a separate CLI step.
     """
 
@@ -777,7 +803,7 @@ def author_check_cmd(ctx, auth, api_key, property_id):
 
 @author_group.group("cq")
 def author_cq_group():
-    """List, write, and confirm competency questions (FOR ME)."""
+    """List, write, and confirm competency questions (Your key)."""
 
 
 @author_cq_group.command("list")

@@ -3,7 +3,7 @@ name: dream-insights-author
 description: >
   Build a Dream Insights ActivatedOntology outside Discovery and push it with
   the authoring MCP or CLI (import, draft write, publish). Use for Claude Code
-  or Codex acting as the human (FOR ME). Do not use a fleet machine-reader key
+  or Codex acting as the human (Your key). Do not use a fleet machine-reader key
   or /mcp/fleet/ for these writes.
 compatibility:
   cli: pip install "git+https://github.com/code-samurai/dream-insights-cli.git"
@@ -35,7 +35,7 @@ synthetic property for experiments.
 
 ## Authenticate
 
-1. Personal key from Discovery **Settings → Connect apps → FOR ME**. Prefix `di_user_`.
+1. Personal key from Discovery **Settings → Connect apps → Your key**. Prefix `di_user_`.
 2. MCP URL `https://t.leadshook.com/mcp/author/` (trailing slash required).
 3. Header `Authorization: Bearer di_user_YOUR_PERSONAL_KEY` or `X-API-Key: di_user_YOUR_PERSONAL_KEY`.
 4. Admin key is the operator alternative. `allow_breaking` is admin-only.

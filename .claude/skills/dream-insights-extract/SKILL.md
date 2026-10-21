@@ -36,7 +36,7 @@ di ontology --format json
 
 Config: `~/.dream-insights/config.yaml` (mode 0600).
 
-### MCP (FOR AGENT)
+### MCP (Agent & tool key)
 
 ```json
 {
@@ -80,6 +80,7 @@ di entities --property-id <property-uuid> --entity-type lead
 di entity --property-id <property-uuid> --entity-type lead --entity-id <entity-uuid>
 di timeline --property-id <property-uuid> --person-id <person-uuid>
 di transitions --property-id <property-uuid>
+di transitions --property-id <property-uuid> --from-type lead --to-type sale --include-to-entity  # revenue by source: you sum
 di semantic --property-id <property-uuid> --collection EntityProfile --query "quiz lead"
 ```
 

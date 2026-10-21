@@ -11,16 +11,16 @@ session:
 
 ```bash
 export DREAM_INSIGHTS_API_KEY="$(keyring get dream-insights api_key)"
-# authoring (FOR ME):
+# authoring (Your key):
 export DREAM_INSIGHTS_AUTHORING_API_KEY="$(keyring get dream-insights authoring_api_key)"
 ```
 
-## Key classes (FOR ME vs FOR AGENT)
+## Key classes (Your key vs Agent & tool keys)
 
 | Class | Prefix / mint | Use |
 |-------|---------------|-----|
-| **Personal (FOR ME)** | `di_user_…` from Discovery Settings → Connect apps → FOR ME | You: CLI, personal scripts, Cloud Code/Desktop, **ontology authoring** (`/mcp/author/`, `di author …`) |
-| **Machine reader (FOR AGENT)** | Minted Agent & integration reader | Hermes, fleet bots, coding-agent **read** skills, **fleet MCP** only |
+| **Personal (Your key)** | `di_user_…` from Discovery Settings → Connect apps → Your key | You: CLI, personal scripts, Cloud Code/Desktop, **ontology authoring** (`/mcp/author/`, `di author …`) |
+| **Machine reader (Agent & tool key)** | Read only key from Discovery Settings → Connect apps → Agent & tool keys | Hermes, fleet bots, coding-agent **read** skills, **fleet MCP** only |
 
 - Do **not** put a personal key in a shared agent runtime or commit it to git.
 - Do **not** share one machine-reader secret across unrelated agents.
