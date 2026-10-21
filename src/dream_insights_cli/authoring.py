@@ -16,7 +16,7 @@ import httpx
 import yaml
 
 from dream_insights_cli import config
-from dream_insights_cli.client import ClickExit, click_exit, _safe_detail
+from dream_insights_cli.client import ClickExit, click_exit, _safe_detail, failure_text
 
 AUTHORING_MCP_PATH = "/mcp/author/"
 AUTHORING_MCP_URL = "https://t.leadshook.com/mcp/author/"
@@ -157,9 +157,16 @@ class AuthoringClient:
         if resp.status_code == 404:
             raise click_exit(_safe_detail(resp) or f"Not found: {resp.url.path}")
         if resp.status_code == 409:
-            raise click_exit(_safe_detail(resp) or "Conflict (draft matches live, empty, or publish in flight)")
+            text = failure_text(resp) or "Conflict (draft matches live, empty, or publish in flight)"
+            if "changed after you opened it" in text:
+                text += "\nRead the draft again, apply your change, and send its updated_at as --expected-updated-at."
+            raise click_exit(text)
+        if resp.status_code == 422:
+            # A plain sentence (quality refusal, rename clash, bad value), not "API error".
+            raise click_exit(failure_text(resp) or f"Refused (422): {resp.text[:200]}")
         if resp.status_code >= 400:
-            raise click_exit(f"API error ({resp.status_code}): {_safe_detail(resp) or resp.text[:200]}")
+            text = failure_text(resp)
+            raise click_exit(text or f"API error ({resp.status_code}): {_safe_detail(resp) or resp.text[:200]}")
 
     def _request(
         self,
@@ -192,15 +199,28 @@ class AuthoringClient:
         except ValueError:
             return {"detail": resp.text, "status": resp.status_code}
 
-    def import_ontology(self, property_id: Any, ontology_id: Any, document: dict) -> Any:
-        """POST import onto the property draft. Does not publish."""
-        path = _render_path(IMPORT_PATH, property_id=property_id, ontology_id=ontology_id)
-        return self._request("POST", path, json_body={"document": document})
+    def import_ontology(
+        self, property_id: Any, ontology_id: Any, document: dict, *, expected_updated_at: str | None = None,
+    ) -> Any:
+        """POST import onto the property draft. Does not publish.
 
-    def write_ontology(self, property_id: Any, document: dict) -> Any:
+        ``expected_updated_at`` (the draft's updated_at when you read it) makes
+        the server refuse with 409 if someone saved the draft since. A file's
+        sibling ``questions`` are added to Quality; the response ``notice`` says so.
+        """
+        path = _render_path(IMPORT_PATH, property_id=property_id, ontology_id=ontology_id)
+        body: dict = {"document": document}
+        if expected_updated_at:
+            body["expected_updated_at"] = expected_updated_at
+        return self._request("POST", path, json_body=body)
+
+    def write_ontology(self, property_id: Any, document: dict, *, expected_updated_at: str | None = None) -> Any:
         """PUT full-replace property draft. Creates draft when missing. Does not publish."""
         path = _render_path(DRAFT_PATH, property_id=property_id)
-        return self._request("PUT", path, json_body=document)
+        body = dict(document)
+        if expected_updated_at:
+            body["expected_updated_at"] = expected_updated_at
+        return self._request("PUT", path, json_body=body)
 
     def publish_ontology(self, property_id: Any, *, allow_breaking: bool = False) -> Any:
         """POST publish. Materialise follows the existing publish saga."""
